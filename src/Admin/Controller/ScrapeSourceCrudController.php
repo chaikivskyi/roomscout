@@ -5,6 +5,7 @@ namespace App\Admin\Controller;
 use App\Admin\Form\ScrapeRuleType;
 use App\CatalogScraper\Entity\ScrapeSource;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -22,6 +23,7 @@ class ScrapeSourceCrudController extends AbstractCrudController
         return [
             IdField::new('id')->onlyOnIndex(),
             TextField::new('title')->setRequired(true),
+            BooleanField::new('active'),
             UrlField::new('source_url', 'Source URL')->setRequired(true),
             CollectionField::new('rules')
                 ->setEntryType(ScrapeRuleType::class)

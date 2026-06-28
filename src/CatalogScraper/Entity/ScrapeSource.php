@@ -27,6 +27,9 @@ class ScrapeSource
     #[Assert\Length(max: 255)]
     private ?string $title = null;
 
+    #[ORM\Column(options: ['default' => true])]
+    private bool $active = true;
+
     /**
      * Ordered list of scraping steps, each shaped like
      * ['action' => 'click', 'selector' => '.btn', 'value' => null].
@@ -81,6 +84,18 @@ class ScrapeSource
     public function setTitle(string $title): static
     {
         $this->title = $title;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): static
+    {
+        $this->active = $active;
 
         return $this;
     }
