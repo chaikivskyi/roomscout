@@ -28,5 +28,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Catalog');
         yield MenuItem::linkTo(CategoryCrudController::class, 'Categories', 'fa fa-folder-tree');
         yield MenuItem::linkTo(ProductCrudController::class, 'Products', 'fa fa-couch');
+        yield MenuItem::section('Catalog Scraper');
+        yield MenuItem::linkTo(ScrapeSourceCrudController::class, 'Scrape Sources', 'fa fa-spider');
     }
 }
