@@ -7,20 +7,20 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-final class Version20260628110554 extends AbstractMigration
+final class Version20260705151907 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Add unique index on product.external_id';
     }
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE scrape_source ADD active BOOLEAN DEFAULT true NOT NULL');
+        $this->addSql('CREATE UNIQUE INDEX uniq_product_external_id ON product (external_id)');
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE scrape_source DROP active');
+        $this->addSql('DROP INDEX uniq_product_external_id');
     }
 }

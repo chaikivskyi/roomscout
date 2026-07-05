@@ -2,30 +2,41 @@
 
 namespace App\Catalog\Entity;
 
+use App\Catalog\Api\ProductInterface;
 use App\Catalog\Repository\ProductRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
-class Product
+#[ORM\UniqueConstraint(name: 'uniq_product_external_id', columns: ['external_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_product_uuid', columns: ['uuid'])]
+class Product implements ProductInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    /**
+     * Stable, application-assigned identifier, safe to expose publicly (e.g. as
+     * the thumbnail storage path) without leaking the source's product id.
+     */
+    #[ORM\Column(type: UuidType::NAME)]
+    private Uuid $uuid;
+
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Length(max: 255)]
-    private ?string $external_id = null;
+    private ?string $externalId = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     private ?string $title = null;
 
-    #[ORM\Column(nullable: true)]
-    #[Assert\Length(max: 255)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
     #[ORM\Column(length: 2048)]
@@ -34,11 +45,11 @@ class Product
     #[Assert\Length(max: 2048)]
     private ?string $url = null;
 
+    // Public URL/path of the image stored on our own storage (see ThumbnailDownloader).
     #[ORM\Column(length: 2048)]
     #[Assert\NotBlank]
-    #[Assert\Url]
     #[Assert\Length(max: 2048)]
-    private ?string $thumbnail_url = null;
+    private ?string $thumbnailUrl = null;
 
     #[ORM\Column(nullable: true, type: Types::FLOAT)]
     #[Assert\PositiveOrZero]
@@ -52,29 +63,39 @@ class Product
     // Dimensions
     #[ORM\Column(nullable: true, type: Types::FLOAT)]
     #[Assert\Positive]
-    private ?float $width_sm = null;
+    private ?float $widthSm = null;
 
     #[ORM\Column(nullable: true, type: Types::FLOAT)]
     #[Assert\Positive]
-    private ?float $height_sm = null;
+    private ?float $heightSm = null;
 
     #[ORM\Column(nullable: true, type: Types::FLOAT)]
     #[Assert\Positive]
-    private ?float $depth_sm = null;
+    private ?float $depthSm = null;
+
+    public function __construct()
+    {
+        $this->uuid = Uuid::v7();
+    }
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getExternalId(): ?string
+    public function getUuid(): Uuid
     {
-        return $this->external_id;
+        return $this->uuid;
     }
 
-    public function setExternalId(?string $external_id): static
+    public function getExternalId(): ?string
     {
-        $this->external_id = $external_id;
+        return $this->externalId;
+    }
+
+    public function setExternalId(?string $externalId): static
+    {
+        $this->externalId = $externalId;
 
         return $this;
     }
@@ -117,12 +138,12 @@ class Product
 
     public function getThumbnailUrl(): ?string
     {
-        return $this->thumbnail_url;
+        return $this->thumbnailUrl;
     }
 
-    public function setThumbnailUrl(string $thumbnail_url): static
+    public function setThumbnailUrl(string $thumbnailUrl): static
     {
-        $this->thumbnail_url = $thumbnail_url;
+        $this->thumbnailUrl = $thumbnailUrl;
 
         return $this;
     }
@@ -153,36 +174,36 @@ class Product
 
     public function getWidthSm(): ?float
     {
-        return $this->width_sm;
+        return $this->widthSm;
     }
 
-    public function setWidthSm(?float $width_sm): static
+    public function setWidthSm(?float $widthSm): static
     {
-        $this->width_sm = $width_sm;
+        $this->widthSm = $widthSm;
 
         return $this;
     }
 
     public function getHeightSm(): ?float
     {
-        return $this->height_sm;
+        return $this->heightSm;
     }
 
-    public function setHeightSm(?float $height_sm): static
+    public function setHeightSm(?float $heightSm): static
     {
-        $this->height_sm = $height_sm;
+        $this->heightSm = $heightSm;
 
         return $this;
     }
 
     public function getDepthSm(): ?float
     {
-        return $this->depth_sm;
+        return $this->depthSm;
     }
 
-    public function setDepthSm(?float $depth_sm): static
+    public function setDepthSm(?float $depthSm): static
     {
-        $this->depth_sm = $depth_sm;
+        $this->depthSm = $depthSm;
 
         return $this;
     }

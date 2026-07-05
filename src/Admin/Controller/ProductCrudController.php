@@ -24,14 +24,14 @@ class ProductCrudController extends AbstractCrudController
             IdField::new('id')->onlyOnIndex(),
             TextField::new('title')->setRequired(true),
             AssociationField::new('category')->setRequired(true),
-            TextField::new('external_id', 'External ID')->setRequired(false)->hideOnIndex(),
+            TextField::new('externalId', 'External ID')->setRequired(false)->hideOnIndex(),
             TextareaField::new('description')->setRequired(false)->hideOnIndex(),
             UrlField::new('url')->setRequired(true)->hideOnIndex(),
-            UrlField::new('thumbnail_url', 'Thumbnail URL')->setRequired(true)->hideOnIndex(),
+            UrlField::new('thumbnailUrl', 'Thumbnail URL')->setRequired(true)->hideOnIndex(),
             NumberField::new('price')->setNumDecimals(2)->setRequired(false),
-            NumberField::new('width_sm', 'Width (cm)')->setRequired(false)->hideOnIndex(),
-            NumberField::new('height_sm', 'Height (cm)')->setRequired(false)->hideOnIndex(),
-            NumberField::new('depth_sm', 'Depth (cm)')->setRequired(false)->hideOnIndex(),
+            NumberField::new('widthSm', 'Width (cm)')->setRequired(false)->hideOnIndex(),
+            NumberField::new('heightSm', 'Height (cm)')->setRequired(false)->hideOnIndex(),
+            NumberField::new('depthSm', 'Depth (cm)')->setRequired(false)->hideOnIndex(),
         ];
     }
 }

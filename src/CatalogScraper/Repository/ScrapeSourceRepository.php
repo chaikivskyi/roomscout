@@ -16,28 +16,15 @@ class ScrapeSourceRepository extends ServiceEntityRepository
         parent::__construct($registry, ScrapeSource::class);
     }
 
-    //    /**
-    //     * @return ScrapeSource[] Returns an array of ScrapeSource objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('s.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?ScrapeSource
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /**
+     * @return ScrapeSource[]
+     */
+    public function findActive(): array
+    {
+        return $this->createQueryBuilder('ss')
+            ->andWhere('ss.active = true')
+            ->orderBy('ss.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
