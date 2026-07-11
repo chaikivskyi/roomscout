@@ -26,6 +26,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/CatalogScraper/Entity'
                 prefix: 'App\CatalogScraper\Entity'
                 alias: CatalogScraper
+            Identity:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Identity/Entity'
+                prefix: 'App\Identity\Entity'
+                alias: Identity
 
 when@test:
     doctrine:

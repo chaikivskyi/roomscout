@@ -1,0 +1,26 @@
+api_platform:
+    title: Home Decor API
+    version: 1.0.0
+    mapping:
+        paths:
+            - '%kernel.project_dir%/src/Identity/ApiResource'
+            - '%kernel.project_dir%/src/Identity/Entity'
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    swagger:
+        api_keys:
+            JWT:
+                name: Authorization
+                type: header
+        swagger_ui_extra_configuration:
+            # Keep the endpoint list navigable as it grows: groups collapsed,
+            # searchable, and deterministically ordered.
+            docExpansion: 'none'
+            filter: true
+            tagsSorter: 'alpha'
+            operationsSorter: 'alpha'

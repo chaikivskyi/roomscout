@@ -1,4 +1,5 @@
 /.idea/
+/.env/
 
 ###> symfony/framework-bundle ###
 /.env.local
@@ -20,3 +21,7 @@
 /public/uploads/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###
