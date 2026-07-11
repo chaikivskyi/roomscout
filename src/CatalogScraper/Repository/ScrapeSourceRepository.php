@@ -23,7 +23,6 @@ class ScrapeSourceRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('ss')
             ->andWhere('ss.active = true')
-            ->orderBy('ss.id', 'ASC')
             ->getQuery()
             ->getResult();
     }

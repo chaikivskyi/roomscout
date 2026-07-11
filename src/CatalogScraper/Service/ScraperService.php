@@ -4,7 +4,6 @@ namespace App\CatalogScraper\Service;
 
 use App\Catalog\Api\ProductRepositoryInterface;
 use App\CatalogScraper\Entity\ScrapeSource;
-use App\CatalogScraper\Repository\ScrapeSourceRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
@@ -12,7 +11,6 @@ use Throwable;
 class ScraperService
 {
     public function __construct(
-        private readonly ScrapeSourceRepository $scrapeSourceRepository,
         private readonly ProductRepositoryInterface $products,
         private readonly ProductUrlCollector $productUrlCollector,
         private readonly PageFetcher $pageFetcher,
@@ -21,22 +19,6 @@ class ScraperService
         private readonly ValidatorInterface $validator,
         private readonly LoggerInterface $logger,
     ) {
-    }
-
-    public function run(): void
-    {
-        $sources = $this->scrapeSourceRepository->findActive();
-
-        foreach ($sources as $source) {
-            try {
-                $this->scrape($source);
-            } catch (Throwable $e) {
-                $this->logger->error('Source "{title}" failed: {message}', [
-                    'title' => $source->getTitle(),
-                    'message' => $e->getMessage(),
-                ]);
-            }
-        }
     }
 
     public function scrape(ScrapeSource $source): void
