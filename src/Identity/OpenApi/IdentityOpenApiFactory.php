@@ -36,9 +36,10 @@ final class IdentityOpenApiFactory implements OpenApiFactoryInterface
                 operationId: 'api_logout',
                 tags: ['Identity / Account'],
                 summary: 'Log out (revoke the current JWT)',
-                description: 'Blocklists the JWT sent in the Authorization header; it is rejected on all later requests. Idempotent: succeeds with 204 even without a (valid) token.',
+                description: 'Blocklists the JWT sent in the Authorization header; it is rejected on all later requests. Without a token this is a 204 no-op; an invalid or already-revoked token fails authentication with 401.',
                 responses: [
-                    '204' => new OpenApiResponse(description: 'Token revoked (or nothing to revoke)'),
+                    '204' => new OpenApiResponse(description: 'Token revoked (or no token sent)'),
+                    '401' => new OpenApiResponse(description: 'Invalid or already-revoked token'),
                 ],
             ),
         ));
