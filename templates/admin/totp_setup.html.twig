@@ -1,0 +1,36 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Two-factor authentication{% endblock %}
+
+{% block main %}
+    {% if qr_svg %}
+        <div class="alert alert-success">
+            New secret generated. Scan the QR code with your authenticator app
+            (Google Authenticator, 1Password, Authy, …) <strong>now</strong> —
+            it will not be shown again.
+        </div>
+        <p><img src="{{ qr_svg }}" alt="TOTP QR code" width="240" height="240"></p>
+        <p>Can't scan? Enter the secret manually: <code>{{ secret }}</code></p>
+        <p class="text-muted">Codes from the app are required at login in production.</p>
+    {% elseif enrolled %}
+        <div class="alert alert-info">
+            Two-factor authentication is <strong>enabled</strong> for your account.
+            Regenerating replaces the current secret — your existing authenticator
+            entry stops working.
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            Two-factor authentication is <strong>not set up</strong> for your account.
+            In production you will be required to set it up before using the back office.
+        </div>
+    {% endif %}
+
+    {% if not qr_svg %}
+        <form method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_2fa_setup') }}">
+            <button type="submit" class="btn {{ enrolled ? 'btn-danger' : 'btn-primary' }}">
+                {{ enrolled ? 'Regenerate secret' : 'Generate secret' }}
+            </button>
+        </form>
+    {% endif %}
+{% endblock %}

@@ -3,6 +3,7 @@
 namespace App\Tests\Factory;
 
 use App\Identity\Entity\User;
+use App\Identity\Enum\Role;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
@@ -22,6 +23,11 @@ final class UserFactory extends PersistentObjectFactory
     public static function class(): string
     {
         return User::class;
+    }
+
+    public function admin(): static
+    {
+        return $this->with(['roles' => [Role::Admin->value]]);
     }
 
     protected function defaults(): array

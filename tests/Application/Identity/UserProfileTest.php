@@ -20,6 +20,7 @@ final class UserProfileTest extends ApiTestCase
         $data = $response->toArray();
         self::assertArrayNotHasKey('password', $data);
         self::assertArrayNotHasKey('roles', $data);
+        self::assertArrayNotHasKey('totpSecret', $data);
     }
 
     public function testOtherUsersProfileIsForbidden(): void
