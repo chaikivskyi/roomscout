@@ -6,6 +6,7 @@ use App\Catalog\Entity\Product;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -27,7 +28,16 @@ class ProductCrudController extends AbstractCrudController
             TextField::new('externalId', 'External ID')->setRequired(false)->hideOnIndex(),
             TextareaField::new('description')->setRequired(false)->hideOnIndex(),
             UrlField::new('url')->setRequired(true)->hideOnIndex(),
-            UrlField::new('thumbnailUrl', 'Thumbnail URL')->setRequired(true)->hideOnIndex(),
+            ImageField::new('thumbnailUrl', 'Thumbnail')
+                ->setRequired(false)
+                ->setFlysystemStorage('product_thumbnails.storage')
+                ->setUploadDir('/')
+                ->setUploadedFileNamePattern('[uuid].[extension]')
+                ->mimeTypes('image/jpeg,image/png,image/webp,image/gif,image/avif')
+                ->maxSize('10Mi')
+                ->isDeletable(false)
+                ->setSortable(false)
+                ->setFormTypeOption('data_class', null),
             NumberField::new('price')->setNumDecimals(2)->setRequired(false),
             NumberField::new('widthSm', 'Width (cm)')->setRequired(false)->hideOnIndex(),
             NumberField::new('heightSm', 'Height (cm)')->setRequired(false)->hideOnIndex(),

@@ -117,7 +117,7 @@ class ThumbnailDownloader
 
         $this->storage->write($path, $content);
 
-        return $this->storage->publicUrl($path);
+        return $path;
     }
 
     private function normalizeContentType(string $header): string

@@ -45,7 +45,6 @@ class Product implements ProductInterface
     #[Assert\Length(max: 2048)]
     private ?string $url = null;
 
-    // Public URL/path of the image stored on our own storage (see ThumbnailDownloader).
     #[ORM\Column(length: 2048)]
     #[Assert\NotBlank]
     #[Assert\Length(max: 2048)]

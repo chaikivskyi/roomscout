@@ -10,4 +10,4 @@ flysystem:
             adapter: 'local'
             options:
                 directory: '%kernel.project_dir%/public/uploads/product'
-            public_url: '/product'
+            public_url: '/uploads/product'
