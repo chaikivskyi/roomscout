@@ -11,3 +11,18 @@ flysystem:
             options:
                 directory: '%kernel.project_dir%/public/uploads/product'
             public_url: '/uploads/product'
+
+        project.storage:
+            adapter: 'local'
+            options:
+                directory: '%kernel.project_dir%/public/uploads/project'
+            public_url: '/uploads/project'
+
+when@test:
+    flysystem:
+        storages:
+            project.storage:
+                adapter: 'local'
+                options:
+                    directory: '%kernel.project_dir%/var/storage/test/project'
+                public_url: '/uploads/project'
