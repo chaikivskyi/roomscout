@@ -33,7 +33,7 @@ class ProductCrudController extends AbstractCrudController
                 ->setFlysystemStorage('product_thumbnails.storage')
                 ->setUploadDir('/')
                 ->setUploadedFileNamePattern('[uuid].[extension]')
-                ->mimeTypes('image/jpeg,image/png,image/webp,image/gif,image/avif')
+                ->mimeTypes('image/jpeg,image/png,image/webp,image/gif')
                 ->maxSize('10Mi')
                 ->isDeletable(false)
                 ->setSortable(false)

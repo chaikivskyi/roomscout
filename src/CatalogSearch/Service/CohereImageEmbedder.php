@@ -6,6 +6,7 @@ use App\CatalogSearch\Entity\ProductEmbedding;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class CohereImageEmbedder implements ImageEmbedderInterface
 {
@@ -67,10 +68,10 @@ final class CohereImageEmbedder implements ImageEmbedderInterface
             );
         }
         if ($status >= 500) {
-            throw new \RuntimeException(sprintf('Cohere embed request failed with status %d.', $status));
+            throw new \RuntimeException(sprintf('Cohere embed request failed with status %d: %s', $status, self::responseSummary($response)));
         }
         if ($status >= 400) {
-            throw new UnrecoverableMessageHandlingException(sprintf('Cohere rejected the embed request with status %d.', $status));
+            throw new UnrecoverableMessageHandlingException(sprintf('Cohere rejected the embed request with status %d: %s', $status, self::responseSummary($response)));
         }
 
         $vector = $response->toArray()['embeddings']['float'][0] ?? null;
@@ -80,6 +81,17 @@ final class CohereImageEmbedder implements ImageEmbedderInterface
         }
 
         return $vector;
+    }
+
+    private static function responseSummary(ResponseInterface $response): string
+    {
+        try {
+            $body = trim($response->getContent(false));
+        } catch (\Throwable) {
+            return '(response body unavailable)';
+        }
+
+        return empty($body) ? '(empty response body)' : $body;
     }
 
     /**

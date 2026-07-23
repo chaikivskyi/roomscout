@@ -121,6 +121,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $this->storage()->write('err400/thumbnail.png', base64_decode(self::PNG_1X1));
 
         $this->expectException(UnrecoverableMessageHandlingException::class);
+        $this->expectExceptionMessage('invalid request');
         $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
     }
 
@@ -152,6 +153,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
             self::fail('Expected a retryable exception.');
         } catch (\RuntimeException $e) {
             self::assertNotInstanceOf(UnrecoverableMessageHandlingException::class, $e);
+            self::assertStringContainsString('boom', $e->getMessage());
         }
     }
 

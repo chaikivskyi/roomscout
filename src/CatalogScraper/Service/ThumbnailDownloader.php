@@ -13,7 +13,7 @@ use Throwable;
 
 class ThumbnailDownloader
 {
-    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
     private const MAX_BYTES = 10 * 1024 * 1024;
 
