@@ -4,7 +4,6 @@ namespace App\CatalogSearch\EventListener;
 
 use App\CatalogSearch\Message\MatchProjectProductsMessage;
 use App\Project\Entity\Project;
-use App\Project\Enum\ProjectStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
@@ -40,11 +39,14 @@ final class MarkProjectFailedOnMatchingFailure
 
         $project = $this->entityManager->find(Project::class, Uuid::fromString($message->projectId));
 
-        if (null === $project || ProjectStatus::Processing !== $project->getStatus()) {
+        if (null === $project) {
             return;
         }
 
-        $project->markFailed();
+        if (!$project->markFailed()) {
+            return;
+        }
+
         $this->entityManager->flush();
 
         $this->logger->error('Matching failed permanently; project marked failed.', ['projectId' => $message->projectId]);

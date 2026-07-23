@@ -4,6 +4,8 @@ namespace App\CatalogSearch\MessageHandler;
 
 use App\Catalog\Entity\Product;
 use App\CatalogSearch\Entity\ProductEmbedding;
+use App\CatalogSearch\Exception\EmbeddingRateLimitedException;
+use App\CatalogSearch\Exception\EmbeddingRejectedException;
 use App\CatalogSearch\Message\EmbedProductThumbnailMessage;
 use App\CatalogSearch\Repository\ProductEmbeddingRepository;
 use App\CatalogSearch\Service\ImageEmbedderInterface;
@@ -14,6 +16,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
+use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 #[AsMessageHandler]
 final class EmbedProductThumbnailHandler
@@ -54,7 +57,14 @@ final class EmbedProductThumbnailHandler
         }
 
         $bytes = $this->storage->read($path);
-        $vector = $this->embedder->embedImage($this->storage->mimeType($path), $bytes);
+
+        try {
+            $vector = $this->embedder->embedImage($this->storage->mimeType($path), $bytes);
+        } catch (EmbeddingRateLimitedException $e) {
+            throw new RecoverableMessageHandlingException($e->getMessage(), previous: $e, retryDelay: $e->getRetryDelayMs(), forceRetry: false);
+        } catch (EmbeddingRejectedException $e) {
+            throw new UnrecoverableMessageHandlingException($e->getMessage(), previous: $e);
+        }
 
         $this->embeddings->save(new ProductEmbedding(
             product: $product,

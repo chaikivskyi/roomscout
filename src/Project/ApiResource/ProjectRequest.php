@@ -29,7 +29,7 @@ use Symfony\Component\Validator\Constraints as Assert;
                             'image' => [
                                 'type' => 'string',
                                 'format' => 'binary',
-                                'description' => 'JPEG, PNG, WebP or GIF, max 10 MiB',
+                                'description' => 'JPEG, PNG, WebP or GIF, max 30 MiB',
                             ],
                             'prompt' => ['type' => 'string'],
                         ],
@@ -46,7 +46,7 @@ final class ProjectRequest
 {
     #[Assert\NotNull(message: 'An image file is required.')]
     #[Assert\Image(
-        maxSize: '10Mi',
+        maxSize: '30Mi',
         mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
     )]
     public ?UploadedFile $image = null;

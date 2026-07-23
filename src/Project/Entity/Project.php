@@ -48,18 +48,32 @@ class Project
         return $this->status;
     }
 
-    public function markCompleted(): static
+    /**
+     * @return bool whether the status changed
+     */
+    public function markCompleted(): bool
     {
+        if (ProjectStatus::Completed === $this->status) {
+            return false;
+        }
+
         $this->status = ProjectStatus::Completed;
 
-        return $this;
+        return true;
     }
 
-    public function markFailed(): static
+    /**
+     * @return bool whether the status changed
+     */
+    public function markFailed(): bool
     {
+        if (ProjectStatus::Processing !== $this->status) {
+            return false;
+        }
+
         $this->status = ProjectStatus::Failed;
 
-        return $this;
+        return true;
     }
 
     public function getId(): Uuid

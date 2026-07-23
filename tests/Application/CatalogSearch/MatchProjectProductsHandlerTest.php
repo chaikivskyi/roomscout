@@ -4,6 +4,7 @@ namespace App\Tests\Application\CatalogSearch;
 
 use App\Catalog\Entity\Product;
 use App\CatalogSearch\Entity\ProductEmbedding;
+use App\CatalogSearch\Entity\ProjectEmbedding;
 use App\CatalogSearch\Entity\ProjectProductMatch;
 use App\CatalogSearch\Message\MatchProjectProductsMessage;
 use App\CatalogSearch\MessageHandler\MatchProjectProductsHandler;
@@ -18,6 +19,7 @@ use Pgvector\Vector;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
+use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Uid\Uuid;
 
 final class MatchProjectProductsHandlerTest extends ApiTestCase
@@ -57,6 +59,12 @@ final class MatchProjectProductsHandlerTest extends ApiTestCase
         $this->handler()(new MatchProjectProductsMessage($project->getId()->toRfc4122()));
 
         self::assertSame(ProjectStatus::Completed, $project->getStatus());
+
+        $projectEmbedding = $this->entityManager()->getRepository(ProjectEmbedding::class)
+            ->findOneBy(['project' => $project->getId()]);
+        self::assertNotNull($projectEmbedding);
+        self::assertSame('embed-v4.0', $projectEmbedding->getModel());
+
         $matches = $this->findMatches($project);
         self::assertCount(2, $matches);
 
@@ -90,6 +98,27 @@ final class MatchProjectProductsHandlerTest extends ApiTestCase
         self::assertSame(ProjectStatus::Completed, $project->getStatus());
     }
 
+    public function testStoredEmbeddingIsReusedInsteadOfRecomputed(): void
+    {
+        // Exactly ONE mock response: a second Cohere call would throw.
+        $client = $this->mockCohere([self::queryResponse(self::vector(1.0))]);
+        $this->seedEmbeddedProduct(self::vector(1.0));
+        $project = $this->projectWithImage('reuse/image.png', 'a sofa');
+
+        $handler = $this->handler();
+        $handler(new MatchProjectProductsMessage($project->getId()->toRfc4122()));
+
+        foreach ($this->findMatches($project) as $match) {
+            $this->entityManager()->remove($match);
+        }
+        $this->entityManager()->flush();
+
+        $handler(new MatchProjectProductsMessage($project->getId()->toRfc4122()));
+
+        self::assertSame(1, $client->getRequestsCount());
+        self::assertCount(1, $this->findMatches($project));
+    }
+
     public function testMissingProjectIsRetriedWithBoundedRetries(): void
     {
         $client = $this->mockCohere([]);
@@ -115,6 +144,30 @@ final class MatchProjectProductsHandlerTest extends ApiTestCase
         self::assertCount(0, $this->findMatches($project));
         // Terminal skip must not leave the project stuck in "processing".
         self::assertSame(ProjectStatus::Failed, $project->getStatus());
+    }
+
+    public function testFailedProjectCompletesWhenRetriedMatchingSucceeds(): void
+    {
+        $this->mockCohere([self::queryResponse(self::vector(1.0))]);
+        $this->seedEmbeddedProduct(self::vector(1.0));
+        $project = $this->projectWithImage('retry/image.png', 'a table');
+        $project->markFailed();
+        $this->entityManager()->flush();
+
+        $this->handler()(new MatchProjectProductsMessage($project->getId()->toRfc4122()));
+
+        self::assertSame(ProjectStatus::Completed, $project->getStatus());
+        self::assertCount(1, $this->findMatches($project));
+    }
+
+    public function testCohereRejectionIsTranslatedToUnrecoverable(): void
+    {
+        $this->mockCohere([new MockResponse('unsupported image', ['http_code' => 400])]);
+        $project = $this->projectWithImage('rejected/image.png', 'a chair');
+
+        $this->expectException(UnrecoverableMessageHandlingException::class);
+        $this->expectExceptionMessage('unsupported image');
+        $this->handler()(new MatchProjectProductsMessage($project->getId()->toRfc4122()));
     }
 
     public function testStoresNothingWhenNoProductClearsTheThreshold(): void
