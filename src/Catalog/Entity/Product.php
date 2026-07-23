@@ -50,6 +50,9 @@ class Product implements ProductInterface
     #[Assert\Length(max: 2048)]
     private ?string $thumbnailUrl = null;
 
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $thumbnailHash = null;
+
     #[ORM\Column(nullable: true, type: Types::FLOAT)]
     #[Assert\PositiveOrZero]
     private ?float $price = null;
@@ -143,6 +146,18 @@ class Product implements ProductInterface
     public function setThumbnailUrl(string $thumbnailUrl): static
     {
         $this->thumbnailUrl = $thumbnailUrl;
+
+        return $this;
+    }
+
+    public function getThumbnailHash(): ?string
+    {
+        return $this->thumbnailHash;
+    }
+
+    public function setThumbnailHash(?string $thumbnailHash): static
+    {
+        $this->thumbnailHash = $thumbnailHash;
 
         return $this;
     }

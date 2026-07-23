@@ -21,6 +21,12 @@ flysystem:
 when@test:
     flysystem:
         storages:
+            product_thumbnails.storage:
+                adapter: 'local'
+                options:
+                    directory: '%kernel.project_dir%/var/storage/test/product'
+                public_url: '/uploads/product'
+
             project.storage:
                 adapter: 'local'
                 options:

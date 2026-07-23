@@ -1,0 +1,69 @@
+<?php
+
+namespace App\CatalogSearch\Service;
+
+use App\CatalogSearch\Entity\ProductEmbedding;
+use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
+use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+final class CohereImageEmbedder implements ImageEmbedderInterface
+{
+    private const MODEL = 'embed-v4.0';
+
+    public function __construct(
+        private readonly HttpClientInterface $cohereClient,
+    ) {
+    }
+
+    public function embedImage(string $mimeType, string $imageBytes): array
+    {
+        $response = $this->cohereClient->request('POST', '/v2/embed', [
+            'timeout' => 30,
+            'max_duration' => 60,
+            'json' => [
+                'model' => self::MODEL,
+                'input_type' => 'search_document',
+                'embedding_types' => ['float'],
+                'output_dimension' => ProductEmbedding::DIMENSIONS,
+                'inputs' => [[
+                    'content' => [[
+                        'type' => 'image_url',
+                        'image_url' => ['url' => sprintf('data:%s;base64,%s', $mimeType, base64_encode($imageBytes))],
+                    ]],
+                ]],
+            ],
+        ]);
+
+        $status = $response->getStatusCode();
+
+        if (429 === $status) {
+            $retryAfter = $response->getHeaders(false)['retry-after'][0] ?? null;
+
+            throw new RecoverableMessageHandlingException(
+                'Cohere rate-limited the embed request.',
+                retryDelay: null !== $retryAfter && ctype_digit($retryAfter) ? 1000 * (int) $retryAfter : null,
+                forceRetry: false,
+            );
+        }
+        if ($status >= 500) {
+            throw new \RuntimeException(sprintf('Cohere embed request failed with status %d.', $status));
+        }
+        if ($status >= 400) {
+            throw new UnrecoverableMessageHandlingException(sprintf('Cohere rejected the embed request with status %d.', $status));
+        }
+
+        $vector = $response->toArray()['embeddings']['float'][0] ?? null;
+
+        if (!\is_array($vector) || ProductEmbedding::DIMENSIONS !== \count($vector)) {
+            throw new UnrecoverableMessageHandlingException('Unexpected Cohere embed response shape.');
+        }
+
+        return $vector;
+    }
+
+    public function model(): string
+    {
+        return self::MODEL;
+    }
+}

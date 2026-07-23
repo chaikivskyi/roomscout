@@ -9,6 +9,14 @@ framework:
                 retry_strategy:
                     max_retries: 3
                     multiplier: 2
+            async_embeddings:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: embeddings
+                retry_strategy:
+                    max_retries: 5
+                    delay: 30000
+                    multiplier: 2
             failed: 'doctrine://default?queue_name=failed'
             # sync: 'sync://'
 
@@ -30,4 +38,5 @@ when@test:
         messenger:
             transports:
                 async: 'in-memory://'
+                async_embeddings: 'in-memory://'
                 failed: 'in-memory://'

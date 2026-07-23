@@ -1,0 +1,6 @@
+framework:
+    http_client:
+        scoped_clients:
+            cohere.client:
+                base_uri: 'https://api.cohere.com'
+                auth_bearer: '%env(COHERE_API_KEY)%'
