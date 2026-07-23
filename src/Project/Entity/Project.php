@@ -2,6 +2,7 @@
 
 namespace App\Project\Entity;
 
+use App\Project\Enum\ProjectStatus;
 use App\Project\Repository\ProjectRepository;
 use App\Identity\Entity\User;
 use DateTimeImmutable;
@@ -24,6 +25,9 @@ class Project
     #[ORM\Column]
     private DateTimeImmutable $updatedAt;
 
+    #[ORM\Column(length: 16, enumType: ProjectStatus::class)]
+    private ProjectStatus $status;
+
     public function __construct(
         #[ORM\ManyToOne(targetEntity: User::class)]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -36,6 +40,26 @@ class Project
         $this->id = Uuid::v7();
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
+        $this->status = ProjectStatus::Processing;
+    }
+
+    public function getStatus(): ProjectStatus
+    {
+        return $this->status;
+    }
+
+    public function markCompleted(): static
+    {
+        $this->status = ProjectStatus::Completed;
+
+        return $this;
+    }
+
+    public function markFailed(): static
+    {
+        $this->status = ProjectStatus::Failed;
+
+        return $this;
     }
 
     public function getId(): Uuid

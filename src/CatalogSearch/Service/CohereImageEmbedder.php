@@ -18,20 +18,40 @@ final class CohereImageEmbedder implements ImageEmbedderInterface
 
     public function embedImage(string $mimeType, string $imageBytes): array
     {
+        return $this->embed('search_document', [
+            self::imageContent($mimeType, $imageBytes),
+        ]);
+    }
+
+    public function embedQuery(string $text, string $mimeType, string $imageBytes): array
+    {
+        return $this->embed('search_query', [
+            ['type' => 'text', 'text' => $text],
+            self::imageContent($mimeType, $imageBytes),
+        ]);
+    }
+
+    public function model(): string
+    {
+        return self::MODEL;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $content
+     *
+     * @return list<float>
+     */
+    private function embed(string $inputType, array $content): array
+    {
         $response = $this->cohereClient->request('POST', '/v2/embed', [
             'timeout' => 30,
             'max_duration' => 60,
             'json' => [
                 'model' => self::MODEL,
-                'input_type' => 'search_document',
+                'input_type' => $inputType,
                 'embedding_types' => ['float'],
                 'output_dimension' => ProductEmbedding::DIMENSIONS,
-                'inputs' => [[
-                    'content' => [[
-                        'type' => 'image_url',
-                        'image_url' => ['url' => sprintf('data:%s;base64,%s', $mimeType, base64_encode($imageBytes))],
-                    ]],
-                ]],
+                'inputs' => [['content' => $content]],
             ],
         ]);
 
@@ -62,8 +82,14 @@ final class CohereImageEmbedder implements ImageEmbedderInterface
         return $vector;
     }
 
-    public function model(): string
+    /**
+     * @return array<string, mixed>
+     */
+    private static function imageContent(string $mimeType, string $imageBytes): array
     {
-        return self::MODEL;
+        return [
+            'type' => 'image_url',
+            'image_url' => ['url' => sprintf('data:%s;base64,%s', $mimeType, base64_encode($imageBytes))],
+        ];
     }
 }

@@ -31,10 +31,6 @@ interface ProductInterface
 
     public function setThumbnailUrl(string $thumbnailUrl): static;
 
-    public function getThumbnailHash(): ?string;
-
-    public function setThumbnailHash(?string $thumbnailHash): static;
-
     public function getPrice(): ?float;
 
     public function setPrice(?float $price): static;

@@ -39,4 +39,19 @@ final class ProjectImageStorage
     {
         $this->storage->delete($path);
     }
+
+    public function exists(string $path): bool
+    {
+        return $this->storage->fileExists($path);
+    }
+
+    public function read(string $path): string
+    {
+        return $this->storage->read($path);
+    }
+
+    public function mimeType(string $path): string
+    {
+        return $this->storage->mimeType($path);
+    }
 }

@@ -45,7 +45,7 @@ final class CreateProjectTest extends ApiTestCase
         ]);
 
         self::assertResponseStatusCodeSame(201);
-        self::assertJsonContains(['prompt' => 'find a similar lamp']);
+        self::assertJsonContains(['prompt' => 'find a similar lamp', 'status' => 'processing']);
 
         $data = $response->toArray();
         self::assertNotEmpty($data['id']);

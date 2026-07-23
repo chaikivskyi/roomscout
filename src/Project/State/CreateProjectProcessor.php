@@ -48,6 +48,7 @@ final class CreateProjectProcessor implements ProcessorInterface
         return new ProjectOutput(
             $project->getId()->toRfc4122(),
             $project->getPrompt(),
+            $project->getStatus()->value,
             $project->getCreatedAt(),
         );
     }
