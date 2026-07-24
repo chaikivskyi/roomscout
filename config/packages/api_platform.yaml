@@ -3,6 +3,7 @@ api_platform:
     version: 1.0.0
     mapping:
         paths:
+            - '%kernel.project_dir%/src/CatalogSearch/ApiResource'
             - '%kernel.project_dir%/src/Project/ApiResource'
             - '%kernel.project_dir%/src/Identity/ApiResource'
             - '%kernel.project_dir%/src/Identity/Entity'

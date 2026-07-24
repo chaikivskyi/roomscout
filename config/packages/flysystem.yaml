@@ -10,7 +10,7 @@ flysystem:
             adapter: 'local'
             options:
                 directory: '%kernel.project_dir%/public/uploads/product'
-            public_url: '/uploads/product'
+            public_url: '%env(DEFAULT_URI)%/uploads/product'
 
         project.storage:
             adapter: 'local'
@@ -25,7 +25,7 @@ when@test:
                 adapter: 'local'
                 options:
                     directory: '%kernel.project_dir%/var/storage/test/product'
-                public_url: '/uploads/product'
+                public_url: '%env(DEFAULT_URI)%/uploads/product'
 
             project.storage:
                 adapter: 'local'

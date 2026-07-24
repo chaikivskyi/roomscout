@@ -17,9 +17,22 @@ class CategoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * Height of the subtree rooted at the given category: a leaf (or an
-     * unsaved category, which cannot have children yet) is 1.
+     * @return list<int>
      */
+    public function findSubtreeIds(int $categoryId): array
+    {
+        $ids = $this->getEntityManager()->getConnection()->fetchFirstColumn(<<<'SQL'
+            WITH RECURSIVE tree AS (
+                SELECT id FROM category WHERE id = :id
+                UNION ALL
+                SELECT c.id FROM category c JOIN tree t ON c.parent_category_id = t.id
+            )
+            SELECT id FROM tree
+            SQL, ['id' => $categoryId]);
+
+        return array_map(intval(...), $ids);
+    }
+
     public function getSubtreeHeight(Category $category): int
     {
         if (null === $category->getId()) {
