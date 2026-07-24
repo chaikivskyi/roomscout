@@ -71,6 +71,84 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         self::assertNotNull($this->findEmbedding($product->getId()));
     }
 
+    public function testOversizedThumbnailIsDownscaledToJpegBeforeSending(): void
+    {
+        $requests = [];
+        $this->mockCohere(function (string $method, string $url, array $options) use (&$requests): MockResponse {
+            $requests[] = json_decode($options['body'] ?? '', true);
+
+            return self::embeddingResponse();
+        });
+
+        $image = imagecreatetruecolor(2048, 1024);
+        imagefill($image, 0, 0, imagecolorallocate($image, 120, 40, 200));
+        ob_start();
+        imagepng($image);
+        $bytes = (string) ob_get_clean();
+        imagedestroy($image);
+
+        $product = ProductFactory::createOne(['thumbnailUrl' => 'oversized/thumbnail.png']);
+        $this->storage()->write('oversized/thumbnail.png', $bytes);
+
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+
+        $url = $requests[0]['inputs'][0]['content'][0]['image_url']['url'];
+        self::assertStringStartsWith('data:image/jpeg;base64,', $url);
+
+        $dimensions = getimagesizefromstring(base64_decode(substr($url, \strlen('data:image/jpeg;base64,'))));
+        self::assertNotFalse($dimensions);
+        self::assertSame(1536, $dimensions[0]);
+        self::assertSame(768, $dimensions[1]);
+    }
+
+    public function testDeclaredDecompressionBombIsSentUndecoded(): void
+    {
+        $requests = [];
+        $this->mockCohere(function (string $method, string $url, array $options) use (&$requests): MockResponse {
+            $requests[] = json_decode($options['body'] ?? '', true);
+
+            return self::embeddingResponse();
+        });
+
+        // 1x1 PNG with its IHDR patched to declare 100000x100000 pixels —
+        // decoding that declaration would need ~50 GB of RAM.
+        $bytes = base64_decode(self::PNG_1X1);
+        $bytes = substr_replace($bytes, pack('N', 100000), 16, 4);
+        $bytes = substr_replace($bytes, pack('N', 100000), 20, 4);
+
+        $product = ProductFactory::createOne(['thumbnailUrl' => 'bomb/thumbnail.png']);
+        $this->storage()->write('bomb/thumbnail.png', $bytes);
+
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+
+        self::assertSame(
+            'data:image/png;base64,'.base64_encode($bytes),
+            $requests[0]['inputs'][0]['content'][0]['image_url']['url'],
+        );
+    }
+
+    public function testUndecodableThumbnailBytesAreSentAsIs(): void
+    {
+        $requests = [];
+        $this->mockCohere(function (string $method, string $url, array $options) use (&$requests): MockResponse {
+            $requests[] = json_decode($options['body'] ?? '', true);
+
+            return self::embeddingResponse();
+        });
+
+        $bytes = str_repeat('not an image at all ', 300000); // > 5 MB, not decodable
+
+        $product = ProductFactory::createOne(['thumbnailUrl' => 'garbage/thumbnail.png']);
+        $this->storage()->write('garbage/thumbnail.png', $bytes);
+
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+
+        self::assertStringEndsWith(
+            ';base64,'.base64_encode($bytes),
+            $requests[0]['inputs'][0]['content'][0]['image_url']['url'],
+        );
+    }
+
     public function testSecondInvocationIsIdempotent(): void
     {
         $client = $this->mockCohere([self::embeddingResponse()]);

@@ -16,28 +16,23 @@ class CategoryRepository extends ServiceEntityRepository
         parent::__construct($registry, Category::class);
     }
 
-    //    /**
-    //     * @return Category[] Returns an array of Category objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('c.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Height of the subtree rooted at the given category: a leaf (or an
+     * unsaved category, which cannot have children yet) is 1.
+     */
+    public function getSubtreeHeight(Category $category): int
+    {
+        if (null === $category->getId()) {
+            return 1;
+        }
 
-    //    public function findOneBySomeField($value): ?Category
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        return (int) $this->getEntityManager()->getConnection()->fetchOne(<<<'SQL'
+            WITH RECURSIVE tree AS (
+                SELECT id, 1 AS depth FROM category WHERE id = :id
+                UNION ALL
+                SELECT c.id, t.depth + 1 FROM category c JOIN tree t ON c.parent_category_id = t.id
+            )
+            SELECT MAX(depth) FROM tree
+            SQL, ['id' => $category->getId()]);
+    }
 }
