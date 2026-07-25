@@ -75,7 +75,9 @@ final class CohereImageEmbedder implements ImageEmbedderInterface
             throw new EmbeddingRejectedException(sprintf('Cohere rejected the embed request with status %d: %s', $status, self::responseSummary($response)));
         }
 
-        $vector = $response->toArray()['embeddings']['float'][0] ?? null;
+        /** @var array{embeddings?: array{float?: list<list<float>>}} $payload */
+        $payload = $response->toArray();
+        $vector = $payload['embeddings']['float'][0] ?? null;
 
         if (!\is_array($vector) || ProductEmbedding::DIMENSIONS !== \count($vector)) {
             throw new EmbeddingRejectedException('Unexpected Cohere embed response shape.');

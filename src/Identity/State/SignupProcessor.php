@@ -42,6 +42,8 @@ final class SignupProcessor implements ProcessorInterface
             ]), previous: $e);
         }
 
-        return new SignupOutput($user->getId(), $user->getEmail(), $this->jwtManager->create($user));
+        $id = $user->getId() ?? throw new \LogicException('A persisted user must have an id.');
+
+        return new SignupOutput($id, $user->getUserIdentifier(), $this->jwtManager->create($user));
     }
 }

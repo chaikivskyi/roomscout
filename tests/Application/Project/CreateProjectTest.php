@@ -6,7 +6,6 @@ use App\Project\Entity\Project;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use League\Flysystem\FilesystemOperator;
-use League\Flysystem\StorageAttributes;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class CreateProjectTest extends ApiTestCase
@@ -25,7 +24,6 @@ final class CreateProjectTest extends ApiTestCase
 
         $storage = $this->storage();
         foreach ($storage->listContents('')->toArray() as $item) {
-            \assert($item instanceof StorageAttributes);
             $item->isDir() ? $storage->deleteDirectory($item->path()) : $storage->delete($item->path());
         }
 
@@ -141,9 +139,6 @@ final class CreateProjectTest extends ApiTestCase
 
     private function storage(): FilesystemOperator
     {
-        $storage = static::getContainer()->get('project.storage');
-        \assert($storage instanceof FilesystemOperator);
-
-        return $storage;
+        return static::getContainer()->get('project.storage');
     }
 }

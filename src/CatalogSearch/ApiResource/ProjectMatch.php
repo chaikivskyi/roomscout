@@ -7,7 +7,6 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
 use App\CatalogSearch\State\ProjectMatchCollectionProvider;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(operations: [
     new GetCollection(
@@ -23,26 +22,24 @@ use Symfony\Component\Validator\Constraints as Assert;
             'priceMin' => new QueryParameter(
                 schema: ['type' => 'number', 'minimum' => 0],
                 description: 'Lowest product price to include; products without a price are excluded when set.',
-                constraints: [new Assert\Type('numeric'), new Assert\PositiveOrZero()],
+                castToNativeType: true,
             ),
             'priceMax' => new QueryParameter(
                 schema: ['type' => 'number', 'minimum' => 0],
                 description: 'Highest product price to include; products without a price are excluded when set.',
-                constraints: [new Assert\Type('numeric'), new Assert\PositiveOrZero()],
+                castToNativeType: true,
             ),
             'category' => new QueryParameter(
                 schema: ['type' => 'integer', 'minimum' => 1],
                 description: 'Category id; matches in this category or any of its descendants.',
-                constraints: [new Assert\Regex(pattern: '/^[1-9]\d*$/', message: 'This value should be a positive integer.')],
+                castToNativeType: true,
             ),
             'sort' => new QueryParameter(
                 schema: ['type' => 'string', 'enum' => ['score', 'price'], 'default' => 'score'],
                 description: 'Sort by match score or product price; unpriced products always sort last.',
-                constraints: [new Assert\Choice(choices: ['score', 'price'])],
             ),
             'direction' => new QueryParameter(
                 schema: ['type' => 'string', 'enum' => ['asc', 'desc'], 'default' => 'desc'],
-                constraints: [new Assert\Choice(choices: ['asc', 'desc'])],
             ),
         ],
         provider: ProjectMatchCollectionProvider::class,

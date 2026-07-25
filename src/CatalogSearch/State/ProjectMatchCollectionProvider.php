@@ -14,6 +14,7 @@ use App\CatalogSearch\Entity\ProjectProductMatch;
 use App\CatalogSearch\Enum\MatchSort;
 use App\CatalogSearch\Enum\SortDirection;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
+use App\Identity\Entity\User;
 use App\Project\Repository\ProjectRepository;
 use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -41,9 +42,9 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): TraversablePaginator
     {
-        $projectId = (string) ($uriVariables['projectId'] ?? '');
+        $projectId = $uriVariables['projectId'] ?? null;
 
-        if (!Uuid::isValid($projectId)) {
+        if (!\is_string($projectId) || !Uuid::isValid($projectId)) {
             throw new NotFoundHttpException('Project not found.');
         }
 
@@ -55,24 +56,28 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
 
         $user = $this->security->getUser();
 
-        if ($project->getUser()->getId() !== $user->getId()) {
+        if (!$user instanceof User || $project->getUser()->getId() !== $user->getId()) {
             throw new AccessDeniedException();
         }
 
-        $priceMin = $this->floatParameter($operation, 'priceMin');
-        $priceMax = $this->floatParameter($operation, 'priceMax');
+        $priceMin = $this->parameter($operation, 'priceMin');
+        $priceMin = \is_float($priceMin) ? $priceMin : null;
+        $priceMax = $this->parameter($operation, 'priceMax');
+        $priceMax = \is_float($priceMax) ? $priceMax : null;
 
         if (null !== $priceMin && null !== $priceMax && $priceMin > $priceMax) {
             throw new UnprocessableEntityHttpException('min price must not exceed max price.');
         }
 
-        [$page, , $limit] = $this->pagination->getPagination($operation, $context);
+        [$rawPage, , $rawLimit] = $this->pagination->getPagination($operation, $context);
+        $page = $this->toPositiveInt($rawPage);
+        $limit = $this->toPositiveInt($rawLimit);
 
         $categoryIds = null;
         $categoryId = $this->parameter($operation, 'category');
 
-        if (null !== $categoryId) {
-            $categoryIds = $this->categories->findSubtreeIds((int) $categoryId);
+        if (\is_int($categoryId)) {
+            $categoryIds = $this->categories->findSubtreeIds($categoryId);
 
             if ([] === $categoryIds) {
                 return new TraversablePaginator(new \ArrayIterator([]), $page, $limit, 0);
@@ -88,8 +93,8 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
                 priceMin: $priceMin,
                 priceMax: $priceMax,
                 categoryIds: $categoryIds,
-                sort: null === $sort ? MatchSort::Score : MatchSort::from((string) $sort),
-                direction: null === $direction ? SortDirection::Desc : SortDirection::from((string) $direction),
+                sort: \is_string($sort) ? MatchSort::from($sort) : MatchSort::Score,
+                direction: \is_string($direction) ? SortDirection::from($direction) : SortDirection::Desc,
                 page: $page,
                 limit: $limit,
             ),
@@ -110,11 +115,12 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
         return $value instanceof ParameterNotFound ? null : $value;
     }
 
-    private function floatParameter(Operation $operation, string $name): ?float
+    /**
+     * @return int<1, max>
+     */
+    private function toPositiveInt(mixed $value): int
     {
-        $value = $this->parameter($operation, $name);
-
-        return null === $value ? null : (float) $value;
+        return max(1, is_numeric($value) ? (int) $value : 1);
     }
 
     private function toDto(ProjectProductMatch $match): ProjectMatch

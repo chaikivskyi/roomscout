@@ -39,7 +39,7 @@ class ProductMapper
             }
 
             if (ProductField::ThumbnailUrl === $field) {
-                $value = UriResolver::resolve($value, $page->getUri() ?? '');
+                $value = UriResolver::resolve((string) $value, $page->getUri() ?? '');
             }
 
             $this->assign($product, $field, $value);
@@ -64,14 +64,14 @@ class ProductMapper
     private function assign(ProductInterface $product, ProductField $field, string|float $value): void
     {
         match ($field) {
-            ProductField::Title => $product->setTitle($value),
-            ProductField::Description => $product->setDescription($value),
-            ProductField::ThumbnailUrl => $product->setThumbnailUrl($value),
-            ProductField::ExternalId => $product->setExternalId($value),
-            ProductField::Price => $product->setPrice($value),
-            ProductField::WidthSm => $product->setWidthSm($value),
-            ProductField::HeightSm => $product->setHeightSm($value),
-            ProductField::DepthSm => $product->setDepthSm($value),
+            ProductField::Title => $product->setTitle((string) $value),
+            ProductField::Description => $product->setDescription((string) $value),
+            ProductField::ThumbnailUrl => $product->setThumbnailUrl((string) $value),
+            ProductField::ExternalId => $product->setExternalId((string) $value),
+            ProductField::Price => $product->setPrice((float) $value),
+            ProductField::WidthSm => $product->setWidthSm((float) $value),
+            ProductField::HeightSm => $product->setHeightSm((float) $value),
+            ProductField::DepthSm => $product->setDepthSm((float) $value),
         };
     }
 }

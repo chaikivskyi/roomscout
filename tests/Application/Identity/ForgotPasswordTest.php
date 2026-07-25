@@ -5,6 +5,7 @@ namespace App\Tests\Application\Identity;
 use App\Identity\Entity\PasswordResetToken;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\UserFactory;
+use Symfony\Component\Mime\Email;
 
 final class ForgotPasswordTest extends ApiTestCase
 {
@@ -18,6 +19,7 @@ final class ForgotPasswordTest extends ApiTestCase
         $plainToken = $this->requestPasswordResetToken($client, 'forgetful@example.com');
 
         $mail = self::getMailerMessage();
+        self::assertInstanceOf(Email::class, $mail);
         self::assertSame('forgetful@example.com', $mail->getTo()[0]->getAddress());
         self::assertSame('Reset your password', $mail->getSubject());
 

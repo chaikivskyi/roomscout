@@ -60,10 +60,11 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
             ->setFirstResult(($criteria->page - 1) * $criteria->limit)
             ->setMaxResults($criteria->limit);
 
+        /** @var Paginator<ProjectProductMatch> $paginator */
         $paginator = new Paginator($qb->getQuery(), fetchJoinCollection: false);
 
         return [
-            'items' => iterator_to_array($paginator),
+            'items' => array_values(iterator_to_array($paginator)),
             'total' => \count($paginator),
         ];
     }

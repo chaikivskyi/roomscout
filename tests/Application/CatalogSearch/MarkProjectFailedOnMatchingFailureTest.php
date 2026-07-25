@@ -76,9 +76,6 @@ final class MarkProjectFailedOnMatchingFailureTest extends ApiTestCase
 
     private function listener(): MarkProjectFailedOnMatchingFailure
     {
-        $listener = static::getContainer()->get(MarkProjectFailedOnMatchingFailure::class);
-        \assert($listener instanceof MarkProjectFailedOnMatchingFailure);
-
-        return $listener;
+        return static::getContainer()->get(MarkProjectFailedOnMatchingFailure::class);
     }
 }

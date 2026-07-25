@@ -26,6 +26,9 @@ class Category
     #[Assert\NotBlank]
     private ?string $title = null;
 
+    /**
+     * @var Collection<int, Product>
+     */
     #[ORM\OneToMany(targetEntity: Product::class, mappedBy: 'category')]
     private Collection $products;
 

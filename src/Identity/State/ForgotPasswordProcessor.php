@@ -46,7 +46,7 @@ final class ForgotPasswordProcessor implements ProcessorInterface
 
         $this->mailer->send(
             new TemplatedEmail()
-                ->to($user->getEmail())
+                ->to($data->email)
                 ->subject('Reset your password')
                 ->htmlTemplate('identity/reset_password_email.html.twig')
                 ->context([

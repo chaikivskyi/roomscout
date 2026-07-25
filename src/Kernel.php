@@ -12,7 +12,7 @@ class Kernel extends BaseKernel
     /**
      * @return list<string> An array of allowed values for APP_ENV
      */
-    private function getAllowedEnvs(): array
+    protected function getAllowedEnvs(): array
     {
         return ['prod', 'dev', 'test'];
     }

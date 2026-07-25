@@ -69,6 +69,7 @@ final class CreateAdminCommandTest extends KernelTestCase
 
         $user = static::getContainer()->get('doctrine')->getRepository(User::class)
             ->findOneBy(['email' => 'promoted@example.com']);
+        self::assertNotNull($user);
         self::assertContains(Role::Admin->value, $user->getRoles());
     }
 

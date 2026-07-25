@@ -18,6 +18,7 @@ final class LoginTest extends ApiTestCase
 
         self::assertResponseIsSuccessful();
         $token = $response->toArray()['token'];
+        self::assertIsString($token);
         self::assertNotEmpty($token);
 
         $this->authClient($token)->request('GET', '/api/users/'.$user->getId());

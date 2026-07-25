@@ -10,6 +10,7 @@ use App\Tests\Factory\ProjectFactory;
 use App\Tests\Factory\ProjectProductMatchFactory;
 use App\Tests\Factory\UserFactory;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class ProjectMatchListTest extends ApiTestCase
 {
@@ -34,7 +35,7 @@ final class ProjectMatchListTest extends ApiTestCase
 
         self::assertResponseIsSuccessful();
 
-        $data = $response->toArray();
+        $data = self::decode($response);
         self::assertSame(3, $data['totalItems']);
         self::assertSame([0.91, 0.77, 0.62], array_column($data['member'], 'score'));
 
@@ -62,13 +63,13 @@ final class ProjectMatchListTest extends ApiTestCase
         $client = $this->authClient($this->tokenFor($user));
         $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
 
-        $data = $client->request('GET', $url.'?priceMin=20')->toArray();
+        $data = self::decode($client->request('GET', $url.'?priceMin=20'));
         self::assertSame([50.0], $this->memberPrices($data));
 
-        $data = $client->request('GET', $url.'?priceMax=20')->toArray();
+        $data = self::decode($client->request('GET', $url.'?priceMax=20'));
         self::assertSame([10.0], $this->memberPrices($data));
 
-        $data = $client->request('GET', $url.'?priceMin=5&priceMax=60')->toArray();
+        $data = self::decode($client->request('GET', $url.'?priceMin=5&priceMax=60'));
         self::assertSame(2, $data['totalItems']);
     }
 
@@ -90,17 +91,17 @@ final class ProjectMatchListTest extends ApiTestCase
         $client = $this->authClient($this->tokenFor($user));
         $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
 
-        $data = $client->request('GET', $url.'?category='.$parent->getId())->toArray();
+        $data = self::decode($client->request('GET', $url.'?category='.$parent->getId()));
         self::assertSame(2, $data['totalItems']);
         self::assertEqualsCanonicalizing(
             [$inParent->getUuid()->toRfc4122(), $inChild->getUuid()->toRfc4122()],
             array_column($data['member'], 'id'),
         );
 
-        $data = $client->request('GET', $url.'?category='.$child->getId())->toArray();
+        $data = self::decode($client->request('GET', $url.'?category='.$child->getId()));
         self::assertSame([$inChild->getUuid()->toRfc4122()], array_column($data['member'], 'id'));
 
-        $data = $client->request('GET', $url.'?category=999999')->toArray();
+        $data = self::decode($client->request('GET', $url.'?category=999999'));
         self::assertSame(0, $data['totalItems']);
         self::assertSame([], $data['member']);
     }
@@ -116,10 +117,10 @@ final class ProjectMatchListTest extends ApiTestCase
         $client = $this->authClient($this->tokenFor($user));
         $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
 
-        $data = $client->request('GET', $url.'?sort=price&direction=asc')->toArray();
+        $data = self::decode($client->request('GET', $url.'?sort=price&direction=asc'));
         self::assertSame([10.0, 30.0, null], $this->memberPrices($data));
 
-        $data = $client->request('GET', $url.'?sort=price&direction=desc')->toArray();
+        $data = self::decode($client->request('GET', $url.'?sort=price&direction=desc'));
         self::assertSame([30.0, 10.0, null], $this->memberPrices($data));
     }
 
@@ -131,9 +132,8 @@ final class ProjectMatchListTest extends ApiTestCase
         ProjectProductMatchFactory::createOne(['project' => $project, 'matchScore' => 0.62]);
         ProjectProductMatchFactory::createOne(['project' => $project, 'matchScore' => 0.77]);
 
-        $data = $this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches?sort=score&direction=asc')
-            ->toArray();
+        $data = self::decode($this->authClient($this->tokenFor($user))
+            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches?sort=score&direction=asc'));
 
         self::assertSame([0.62, 0.77, 0.91], array_column($data['member'], 'score'));
     }
@@ -152,9 +152,8 @@ final class ProjectMatchListTest extends ApiTestCase
         ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $priceyTable]);
         ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $priceyLamp]);
 
-        $data = $this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches?category='.$tables->getId().'&priceMin=50')
-            ->toArray();
+        $data = self::decode($this->authClient($this->tokenFor($user))
+            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches?category='.$tables->getId().'&priceMin=50'));
 
         self::assertSame(1, $data['totalItems']);
         self::assertSame($priceyTable->getUuid()->toRfc4122(), $data['member'][0]['id']);
@@ -173,10 +172,10 @@ final class ProjectMatchListTest extends ApiTestCase
         $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
         $expected = [$first->getUuid()->toRfc4122(), $second->getUuid()->toRfc4122()];
 
-        $data = $client->request('GET', $url)->toArray();
+        $data = self::decode($client->request('GET', $url));
         self::assertSame($expected, array_column($data['member'], 'id'));
 
-        $data = $client->request('GET', $url.'?sort=price&direction=desc')->toArray();
+        $data = self::decode($client->request('GET', $url.'?sort=price&direction=desc'));
         self::assertSame($expected, array_column($data['member'], 'id'));
     }
 
@@ -189,11 +188,11 @@ final class ProjectMatchListTest extends ApiTestCase
         $client = $this->authClient($this->tokenFor($user));
         $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
 
-        $data = $client->request('GET', $url)->toArray();
+        $data = self::decode($client->request('GET', $url));
         self::assertSame(20, $data['totalItems']);
         self::assertCount(15, $data['member']);
 
-        $data = $client->request('GET', $url.'?page=2')->toArray();
+        $data = self::decode($client->request('GET', $url.'?page=2'));
         self::assertCount(5, $data['member']);
     }
 
@@ -235,9 +234,8 @@ final class ProjectMatchListTest extends ApiTestCase
         $user = UserFactory::createOne();
         $project = ProjectFactory::createOne(['user' => $user]);
 
-        $data = $this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches')
-            ->toArray();
+        $data = self::decode($this->authClient($this->tokenFor($user))
+            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches'));
 
         self::assertResponseIsSuccessful();
         self::assertSame(0, $data['totalItems']);
@@ -286,6 +284,8 @@ final class ProjectMatchListTest extends ApiTestCase
     }
 
     /**
+     * @param array{member: list<array{price: float|null}>} $data
+     *
      * @return list<float|null>
      */
     private function memberPrices(array $data): array
@@ -294,5 +294,16 @@ final class ProjectMatchListTest extends ApiTestCase
             static fn (array $member) => null === $member['price'] ? null : (float) $member['price'],
             $data['member'],
         );
+    }
+
+    /**
+     * @return array{totalItems: int, member: list<array{id: string, title: string, price: float|null, imageUrl: string, score: float, url: string}>}
+     */
+    private static function decode(ResponseInterface $response): array
+    {
+        /** @var array{totalItems: int, member: list<array{id: string, title: string, price: float|null, imageUrl: string, score: float, url: string}>} $data */
+        $data = $response->toArray();
+
+        return $data;
     }
 }

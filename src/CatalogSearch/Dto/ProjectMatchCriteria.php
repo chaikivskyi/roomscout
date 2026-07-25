@@ -8,9 +8,7 @@ use App\CatalogSearch\Enum\SortDirection;
 final class ProjectMatchCriteria
 {
     /**
-     * @param positive-int             $page
-     * @param positive-int             $limit
-     * @param non-empty-list<int>|null $categoryIds
+     * @param list<int>|null $categoryIds
      */
     public function __construct(
         public readonly int $page,

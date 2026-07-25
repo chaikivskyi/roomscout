@@ -11,6 +11,7 @@ use App\Project\Entity\Project;
 use App\Project\Repository\ProjectRepository;
 use App\Project\Service\ProjectImageStorage;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Throwable;
 
@@ -34,7 +35,9 @@ final class CreateProjectProcessor implements ProcessorInterface
             throw new AccessDeniedException();
         }
 
-        $imagePath = $this->imageStorage->store($data->image);
+        $image = $data->image ?? throw new UnprocessableEntityHttpException('An image file is required.');
+
+        $imagePath = $this->imageStorage->store($image);
 
         try {
             $project = new Project($user, $imagePath, $data->prompt);

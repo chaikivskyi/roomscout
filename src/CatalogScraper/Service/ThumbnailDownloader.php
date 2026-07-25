@@ -2,7 +2,6 @@
 
 namespace App\CatalogScraper\Service;
 
-use League\Flysystem\FilesystemException;
 use League\Flysystem\FilesystemOperator;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -59,7 +58,7 @@ class ThumbnailDownloader
             }
 
             return $this->persist($identifier, $extension, $content);
-        } catch (FilesystemException | Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->warning('Failed to store thumbnail {url}: {message}', [
                 'url' => $sourceUrl,
                 'message' => $e->getMessage(),

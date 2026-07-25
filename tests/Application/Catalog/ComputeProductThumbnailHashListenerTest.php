@@ -5,7 +5,6 @@ namespace App\Tests\Application\Catalog;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
 use League\Flysystem\FilesystemOperator;
-use League\Flysystem\StorageAttributes;
 
 final class ComputeProductThumbnailHashListenerTest extends ApiTestCase
 {
@@ -15,7 +14,6 @@ final class ComputeProductThumbnailHashListenerTest extends ApiTestCase
     {
         $storage = $this->storage();
         foreach ($storage->listContents('')->toArray() as $item) {
-            \assert($item instanceof StorageAttributes);
             $item->isDir() ? $storage->deleteDirectory($item->path()) : $storage->delete($item->path());
         }
 
@@ -56,9 +54,6 @@ final class ComputeProductThumbnailHashListenerTest extends ApiTestCase
 
     private function storage(): FilesystemOperator
     {
-        $storage = static::getContainer()->get('product_thumbnails.storage');
-        \assert($storage instanceof FilesystemOperator);
-
-        return $storage;
+        return static::getContainer()->get('product_thumbnails.storage');
     }
 }

@@ -139,7 +139,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
 
     public function getUserIdentifier(): string
     {
-        return (string) $this->email;
+        return $this->email ?: throw new \LogicException('User has no email.');
     }
 
     public function getTotpSecret(): ?string
@@ -161,7 +161,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
 
     public function getTotpAuthenticationUsername(): string
     {
-        return (string) $this->email;
+        return $this->getUserIdentifier();
     }
 
     public function getTotpAuthenticationConfiguration(): ?TotpConfigurationInterface

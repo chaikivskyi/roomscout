@@ -22,6 +22,7 @@ final class SignupTest extends ApiTestCase
 
         $data = $response->toArray();
         self::assertIsInt($data['id']);
+        self::assertIsString($data['token']);
         self::assertNotEmpty($data['token']);
         self::assertArrayNotHasKey('password', $data);
         self::assertArrayNotHasKey('roles', $data);
@@ -80,7 +81,9 @@ final class SignupTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(422);
 
-        $paths = array_column($response->toArray(false)['violations'], 'propertyPath');
+        /** @var array{violations: list<array{propertyPath: string}>} $data */
+        $data = $response->toArray(false);
+        $paths = array_column($data['violations'], 'propertyPath');
         self::assertContains('email', $paths);
         self::assertContains('password', $paths);
     }

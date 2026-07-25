@@ -40,12 +40,12 @@ final class CreateAdminCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+        /** @var string $email */
         $email = $input->getArgument('email');
-
         $violations = $this->validator->validate($email, [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 180)]);
 
         if (count($violations) > 0) {
-            $io->error(sprintf('Invalid email "%s": %s', $email, $violations[0]->getMessage()));
+            $io->error(sprintf('Invalid email "%s": %s', $email, (string) $violations->get(0)->getMessage()));
 
             return Command::FAILURE;
         }
@@ -85,11 +85,12 @@ final class CreateAdminCommand extends Command
             return Command::FAILURE;
         }
 
+        /** @var string $password */
         $password = $io->askHidden('Password (min 8 characters)');
         $violations = $this->validator->validate($password, [new Assert\NotBlank(), new Assert\Length(min: 8, max: 4096)]);
 
         if (count($violations) > 0) {
-            $io->error(sprintf('Invalid password: %s', $violations[0]->getMessage()));
+            $io->error(sprintf('Invalid password: %s', (string) $violations->get(0)->getMessage()));
 
             return Command::FAILURE;
         }

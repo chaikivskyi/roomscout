@@ -18,6 +18,8 @@ final class DispatchEmbeddingOnProductCreated
 
     public function postPersist(Product $product): void
     {
-        $this->messageBus->dispatch(new EmbedProductThumbnailMessage($product->getId()));
+        $productId = $product->getId() ?? throw new \LogicException('A persisted Product must have an id.');
+
+        $this->messageBus->dispatch(new EmbedProductThumbnailMessage($productId));
     }
 }

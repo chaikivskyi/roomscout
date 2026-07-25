@@ -8,7 +8,6 @@ use App\CatalogSearch\MessageHandler\EmbedProductThumbnailHandler;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
 use League\Flysystem\FilesystemOperator;
-use League\Flysystem\StorageAttributes;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
@@ -22,7 +21,6 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
     {
         $storage = $this->storage();
         foreach ($storage->listContents('')->toArray() as $item) {
-            \assert($item instanceof StorageAttributes);
             $item->isDir() ? $storage->deleteDirectory($item->path()) : $storage->delete($item->path());
         }
 
@@ -41,7 +39,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'e2e-test/thumbnail.png']);
         $this->storage()->write('e2e-test/thumbnail.png', base64_decode(self::PNG_1X1));
 
-        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
 
         $embedding = $this->findEmbedding($product->getId());
         self::assertNotNull($embedding);
@@ -52,11 +50,11 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         self::assertCount(1, $requests);
         self::assertSame('POST', $requests[0]['method']);
         self::assertSame('https://api.cohere.com/v2/embed', $requests[0]['url']);
-        $body = json_decode($requests[0]['body'], true);
-        self::assertSame('embed-v4.0', $body['model']);
-        self::assertSame('search_document', $body['input_type']);
-        self::assertSame(1536, $body['output_dimension']);
-        self::assertStringStartsWith('data:image/png;base64,', $body['inputs'][0]['content'][0]['image_url']['url']);
+        $body = self::decodeRequest($requests[0]['body']);
+        self::assertSame('embed-v4.0', $body['model'] ?? null);
+        self::assertSame('search_document', $body['input_type'] ?? null);
+        self::assertSame(1536, $body['output_dimension'] ?? null);
+        self::assertStringStartsWith('data:image/png;base64,', self::sentImageUrl($body));
     }
 
     public function testHandlesAdminStyleFlatThumbnailKey(): void
@@ -66,7 +64,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'a1b2c3d4.png']);
         $this->storage()->write('a1b2c3d4.png', base64_decode(self::PNG_1X1));
 
-        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
 
         self::assertNotNull($this->findEmbedding($product->getId()));
     }
@@ -75,13 +73,13 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
     {
         $requests = [];
         $this->mockCohere(function (string $method, string $url, array $options) use (&$requests): MockResponse {
-            $requests[] = json_decode($options['body'] ?? '', true);
+            $requests[] = $options['body'] ?? '';
 
             return self::embeddingResponse();
         });
 
         $image = imagecreatetruecolor(2048, 1024);
-        imagefill($image, 0, 0, imagecolorallocate($image, 120, 40, 200));
+        imagefill($image, 0, 0, (int) imagecolorallocate($image, 120, 40, 200));
         ob_start();
         imagepng($image);
         $bytes = (string) ob_get_clean();
@@ -90,9 +88,9 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'oversized/thumbnail.png']);
         $this->storage()->write('oversized/thumbnail.png', $bytes);
 
-        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
 
-        $url = $requests[0]['inputs'][0]['content'][0]['image_url']['url'];
+        $url = self::sentImageUrl(self::decodeRequest($requests[0]));
         self::assertStringStartsWith('data:image/jpeg;base64,', $url);
 
         $dimensions = getimagesizefromstring(base64_decode(substr($url, \strlen('data:image/jpeg;base64,'))));
@@ -105,7 +103,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
     {
         $requests = [];
         $this->mockCohere(function (string $method, string $url, array $options) use (&$requests): MockResponse {
-            $requests[] = json_decode($options['body'] ?? '', true);
+            $requests[] = $options['body'] ?? '';
 
             return self::embeddingResponse();
         });
@@ -119,11 +117,11 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'bomb/thumbnail.png']);
         $this->storage()->write('bomb/thumbnail.png', $bytes);
 
-        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
 
         self::assertSame(
             'data:image/png;base64,'.base64_encode($bytes),
-            $requests[0]['inputs'][0]['content'][0]['image_url']['url'],
+            self::sentImageUrl(self::decodeRequest($requests[0])),
         );
     }
 
@@ -131,7 +129,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
     {
         $requests = [];
         $this->mockCohere(function (string $method, string $url, array $options) use (&$requests): MockResponse {
-            $requests[] = json_decode($options['body'] ?? '', true);
+            $requests[] = $options['body'] ?? '';
 
             return self::embeddingResponse();
         });
@@ -141,11 +139,11 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'garbage/thumbnail.png']);
         $this->storage()->write('garbage/thumbnail.png', $bytes);
 
-        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
 
         self::assertStringEndsWith(
             ';base64,'.base64_encode($bytes),
-            $requests[0]['inputs'][0]['content'][0]['image_url']['url'],
+            self::sentImageUrl(self::decodeRequest($requests[0])),
         );
     }
 
@@ -157,8 +155,8 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $this->storage()->write('idempotent/thumbnail.png', base64_decode(self::PNG_1X1));
 
         $handler = $this->handler();
-        $handler(new EmbedProductThumbnailMessage($product->getId()));
-        $handler(new EmbedProductThumbnailMessage($product->getId()));
+        $handler(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $handler(new EmbedProductThumbnailMessage((int) $product->getId()));
 
         self::assertSame(1, $client->getRequestsCount());
         self::assertSame(1, $this->entityManager()->getRepository(ProductEmbedding::class)->count(['product' => $product->getId()]));
@@ -185,7 +183,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 
         $product = ProductFactory::createOne(['thumbnailUrl' => 'missing/thumbnail.png']);
 
-        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
 
         self::assertSame(0, $client->getRequestsCount());
         self::assertNull($this->findEmbedding($product->getId()));
@@ -200,7 +198,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 
         $this->expectException(UnrecoverableMessageHandlingException::class);
         $this->expectExceptionMessage('invalid request');
-        $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
     }
 
     public function testRateLimitHonorsRetryAfter(): void
@@ -211,7 +209,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $this->storage()->write('err429/thumbnail.png', base64_decode(self::PNG_1X1));
 
         try {
-            $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+            $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
             self::fail('Expected a recoverable exception.');
         } catch (RecoverableMessageHandlingException $e) {
             self::assertSame(7000, $e->getRetryDelay());
@@ -227,7 +225,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $this->storage()->write('err500/thumbnail.png', base64_decode(self::PNG_1X1));
 
         try {
-            $this->handler()(new EmbedProductThumbnailMessage($product->getId()));
+            $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
             self::fail('Expected a retryable exception.');
         } catch (\RuntimeException $e) {
             self::assertNotInstanceOf(UnrecoverableMessageHandlingException::class, $e);
@@ -237,7 +235,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 
     private static function embeddingResponse(): MockResponse
     {
-        return new MockResponse(json_encode(['embeddings' => ['float' => [array_fill(0, 1536, 0.25)]]]));
+        return new MockResponse(json_encode(['embeddings' => ['float' => [array_fill(0, 1536, 0.25)]]], JSON_THROW_ON_ERROR));
     }
 
     /**
@@ -253,13 +251,10 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 
     private function handler(): EmbedProductThumbnailHandler
     {
-        $handler = static::getContainer()->get(EmbedProductThumbnailHandler::class);
-        \assert($handler instanceof EmbedProductThumbnailHandler);
-
-        return $handler;
+        return static::getContainer()->get(EmbedProductThumbnailHandler::class);
     }
 
-    private function findEmbedding(int $productId): ?ProductEmbedding
+    private function findEmbedding(?int $productId): ?ProductEmbedding
     {
         return $this->entityManager()->getRepository(ProductEmbedding::class)
             ->findOneBy(['product' => $productId]);
@@ -267,9 +262,26 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 
     private function storage(): FilesystemOperator
     {
-        $storage = static::getContainer()->get('product_thumbnails.storage');
-        \assert($storage instanceof FilesystemOperator);
+        return static::getContainer()->get('product_thumbnails.storage');
+    }
 
-        return $storage;
+    /**
+     * @return array{model?: string, input_type?: string, output_dimension?: int, inputs?: list<array{content: list<array{image_url: array{url: string}}>}>}
+     */
+    private static function decodeRequest(mixed $body): array
+    {
+        self::assertIsString($body);
+        /** @var array{model?: string, input_type?: string, output_dimension?: int, inputs?: list<array{content: list<array{image_url: array{url: string}}>}>} $decoded */
+        $decoded = json_decode($body, true);
+
+        return $decoded;
+    }
+
+    /**
+     * @param array{inputs?: list<array{content: list<array{image_url: array{url: string}}>}>} $request
+     */
+    private static function sentImageUrl(array $request): string
+    {
+        return $request['inputs'][0]['content'][0]['image_url']['url'] ?? self::fail('No image url in the captured request.');
     }
 }

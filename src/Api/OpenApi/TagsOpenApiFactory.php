@@ -3,6 +3,7 @@
 namespace App\Api\OpenApi;
 
 use ApiPlatform\OpenApi\Factory\OpenApiFactoryInterface;
+use ApiPlatform\OpenApi\Model\PathItem;
 use ApiPlatform\OpenApi\Model\Tag;
 use ApiPlatform\OpenApi\OpenApi;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
@@ -29,8 +30,11 @@ final class TagsOpenApiFactory implements OpenApiFactoryInterface
         }
 
         $names = [];
+
+        /** @var PathItem $pathItem */
         foreach ($openApi->getPaths()->getPaths() as $pathItem) {
             foreach ([$pathItem->getGet(), $pathItem->getPost(), $pathItem->getPut(), $pathItem->getPatch(), $pathItem->getDelete()] as $operation) {
+                /** @var string $name */
                 foreach ($operation?->getTags() ?? [] as $name) {
                     $names[$name] = true;
                 }

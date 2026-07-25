@@ -14,7 +14,6 @@ use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
 use App\Tests\Factory\ProjectFactory;
 use League\Flysystem\FilesystemOperator;
-use League\Flysystem\StorageAttributes;
 use Pgvector\Vector;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -30,7 +29,6 @@ final class MatchProjectProductsHandlerTest extends ApiTestCase
     {
         $storage = $this->storage();
         foreach ($storage->listContents('')->toArray() as $item) {
-            \assert($item instanceof StorageAttributes);
             $item->isDir() ? $storage->deleteDirectory($item->path()) : $storage->delete($item->path());
         }
 
@@ -77,7 +75,7 @@ final class MatchProjectProductsHandlerTest extends ApiTestCase
 
         self::assertCount(1, $requests);
         self::assertSame('https://api.cohere.com/v2/embed', $requests[0]['url']);
-        $body = json_decode($requests[0]['body'], true);
+        $body = self::decodeRequest($requests[0]['body']);
         self::assertSame('search_query', $body['input_type']);
         self::assertSame(['type' => 'text', 'text' => 'cozy beige sofa'], $body['inputs'][0]['content'][0]);
         self::assertStringStartsWith('data:image/png;base64,', $body['inputs'][0]['content'][1]['image_url']['url']);
@@ -191,9 +189,24 @@ final class MatchProjectProductsHandlerTest extends ApiTestCase
         return array_pad(array_values($components), ProductEmbedding::DIMENSIONS, 0.0);
     }
 
+    /**
+     * @param list<float> $vector
+     */
     private static function queryResponse(array $vector): MockResponse
     {
-        return new MockResponse(json_encode(['embeddings' => ['float' => [$vector]]]));
+        return new MockResponse(json_encode(['embeddings' => ['float' => [$vector]]], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @return array{input_type: string, inputs: list<array{content: array{0: array{type: string, text: string}, 1: array{image_url: array{url: string}}}}>}
+     */
+    private static function decodeRequest(mixed $body): array
+    {
+        self::assertIsString($body);
+        /** @var array{input_type: string, inputs: list<array{content: array{0: array{type: string, text: string}, 1: array{image_url: array{url: string}}}}>} $decoded */
+        $decoded = json_decode($body, true);
+
+        return $decoded;
     }
 
     /**
@@ -244,17 +257,11 @@ final class MatchProjectProductsHandlerTest extends ApiTestCase
 
     private function handler(): MatchProjectProductsHandler
     {
-        $handler = static::getContainer()->get(MatchProjectProductsHandler::class);
-        \assert($handler instanceof MatchProjectProductsHandler);
-
-        return $handler;
+        return static::getContainer()->get(MatchProjectProductsHandler::class);
     }
 
     private function storage(): FilesystemOperator
     {
-        $storage = static::getContainer()->get('project.storage');
-        \assert($storage instanceof FilesystemOperator);
-
-        return $storage;
+        return static::getContainer()->get('project.storage');
     }
 }

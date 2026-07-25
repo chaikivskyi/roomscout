@@ -21,6 +21,7 @@ class CategoryRepository extends ServiceEntityRepository
      */
     public function findSubtreeIds(int $categoryId): array
     {
+        /** @var list<int|numeric-string> $ids */
         $ids = $this->getEntityManager()->getConnection()->fetchFirstColumn(<<<'SQL'
             WITH RECURSIVE tree AS (
                 SELECT id FROM category WHERE id = :id
@@ -39,7 +40,8 @@ class CategoryRepository extends ServiceEntityRepository
             return 1;
         }
 
-        return (int) $this->getEntityManager()->getConnection()->fetchOne(<<<'SQL'
+        /** @var int|numeric-string|null $height */
+        $height = $this->getEntityManager()->getConnection()->fetchOne(<<<'SQL'
             WITH RECURSIVE tree AS (
                 SELECT id, 1 AS depth FROM category WHERE id = :id
                 UNION ALL
@@ -47,5 +49,7 @@ class CategoryRepository extends ServiceEntityRepository
             )
             SELECT MAX(depth) FROM tree
             SQL, ['id' => $category->getId()]);
+
+        return (int) $height;
     }
 }

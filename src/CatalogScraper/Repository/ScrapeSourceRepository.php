@@ -17,13 +17,10 @@ class ScrapeSourceRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return ScrapeSource[]
+     * @return list<ScrapeSource>
      */
     public function findActive(): array
     {
-        return $this->createQueryBuilder('ss')
-            ->andWhere('ss.active = true')
-            ->getQuery()
-            ->getResult();
+        return $this->findBy(['active' => true]);
     }
 }

@@ -21,9 +21,8 @@ trait InteractsWithPasswordReset
         self::assertInstanceOf(TemplatedEmail::class, $mail);
 
         $html = (string) $mail->getHtmlBody();
-        self::assertMatchesRegularExpression('/token=[0-9a-f]{64}/', $html);
-        preg_match('/token=([0-9a-f]{64})/', $html, $matches);
+        self::assertSame(1, preg_match('/token=([0-9a-f]{64})/', $html, $matches));
 
-        return $matches[1];
+        return $matches[1] ?? self::fail('No reset token in email.');
     }
 }
