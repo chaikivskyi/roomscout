@@ -22,9 +22,6 @@ final class ProjectProductMatcher
     ) {
     }
 
-    /**
-     * @return int
-     */
     public function match(Project $project, ProjectEmbedding $embedding): int
     {
         $insertedCount = (int) $this->entityManager->wrapInTransaction(function () use ($project, $embedding): int {

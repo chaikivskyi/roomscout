@@ -5,9 +5,9 @@ namespace App\Identity\State;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use ApiPlatform\Validator\Exception\ValidationException;
+use App\Identity\Api\UserRepositoryInterface;
 use App\Identity\ApiResource\SignupInput;
 use App\Identity\ApiResource\SignupOutput;
-use App\Identity\Api\UserRepositoryInterface;
 use App\Identity\Entity\User;
 use App\Identity\Validator\UniqueUserEmail;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -37,9 +37,7 @@ final class SignupProcessor implements ProcessorInterface
         try {
             $this->users->save($user);
         } catch (UniqueConstraintViolationException $e) {
-            throw new ValidationException(new ConstraintViolationList([
-                new ConstraintViolation(new UniqueUserEmail()->message, null, [], $data, 'email', $data->email),
-            ]), previous: $e);
+            throw new ValidationException(new ConstraintViolationList([new ConstraintViolation(new UniqueUserEmail()->message, null, [], $data, 'email', $data->email)]), previous: $e);
         }
 
         $id = $user->getId() ?? throw new \LogicException('A persisted user must have an id.');

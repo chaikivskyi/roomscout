@@ -6,7 +6,6 @@ use App\Identity\Api\UserRepositoryInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
-use Symfony\Component\Validator\Exception\UnexpectedValueException;
 
 final class UniqueUserEmailValidator extends ConstraintValidator
 {
@@ -21,7 +20,7 @@ final class UniqueUserEmailValidator extends ConstraintValidator
             throw new UnexpectedTypeException($constraint, UniqueUserEmail::class);
         }
 
-        if (! is_string($value) || empty($value)) {
+        if (!is_string($value) || empty($value)) {
             return;
         }
 

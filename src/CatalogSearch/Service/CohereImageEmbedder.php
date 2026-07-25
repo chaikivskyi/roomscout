@@ -63,10 +63,7 @@ final class CohereImageEmbedder implements ImageEmbedderInterface
         if (429 === $status) {
             $retryAfter = $response->getHeaders(false)['retry-after'][0] ?? null;
 
-            throw new EmbeddingRateLimitedException(
-                'Cohere rate-limited the embed request.',
-                null !== $retryAfter && ctype_digit($retryAfter) ? 1000 * (int) $retryAfter : null,
-            );
+            throw new EmbeddingRateLimitedException('Cohere rate-limited the embed request.', null !== $retryAfter && ctype_digit($retryAfter) ? 1000 * (int) $retryAfter : null);
         }
         if ($status >= 500) {
             throw new EmbeddingUnavailableException(sprintf('Cohere embed request failed with status %d: %s', $status, self::responseSummary($response)));

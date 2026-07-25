@@ -6,7 +6,6 @@ use League\Flysystem\FilesystemOperator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Uid\Uuid;
-use UnexpectedValueException;
 
 final class ProjectImageStorage
 {
@@ -19,7 +18,7 @@ final class ProjectImageStorage
     public function store(UploadedFile $image): string
     {
         $extension = $image->guessExtension()
-            ?? throw new UnexpectedValueException('Could not determine the image extension.');
+            ?? throw new \UnexpectedValueException('Could not determine the image extension.');
 
         $path = sprintf('%s/image.%s', Uuid::v7()->toRfc4122(), $extension);
         $stream = fopen($image->getPathname(), 'rb');

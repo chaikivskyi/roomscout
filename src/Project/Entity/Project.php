@@ -2,10 +2,9 @@
 
 namespace App\Project\Entity;
 
+use App\Identity\Entity\User;
 use App\Project\Enum\ProjectStatus;
 use App\Project\Repository\ProjectRepository;
-use App\Identity\Entity\User;
-use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -20,10 +19,10 @@ class Project
     private Uuid $id;
 
     #[ORM\Column]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
-    private DateTimeImmutable $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     #[ORM\Column(length: 16, enumType: ProjectStatus::class)]
     private ProjectStatus $status;
@@ -38,7 +37,7 @@ class Project
         private string $prompt,
     ) {
         $this->id = Uuid::v7();
-        $this->createdAt = new DateTimeImmutable();
+        $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
         $this->status = ProjectStatus::Processing;
     }
@@ -103,12 +102,12 @@ class Project
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
@@ -116,6 +115,6 @@ class Project
     #[ORM\PreUpdate]
     public function touchUpdatedAt(): void
     {
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 }

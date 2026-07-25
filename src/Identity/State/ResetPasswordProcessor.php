@@ -4,10 +4,9 @@ namespace App\Identity\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Identity\ApiResource\ResetPasswordRequest;
 use App\Identity\Api\PasswordResetTokenRepositoryInterface;
 use App\Identity\Api\UserRepositoryInterface;
-use DateTimeImmutable;
+use App\Identity\ApiResource\ResetPasswordRequest;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -27,7 +26,7 @@ final class ResetPasswordProcessor implements ProcessorInterface
     {
         $token = $this->resetTokens->findOneByTokenHash(hash('sha256', $data->token));
 
-        if (null === $token || $token->isExpired(new DateTimeImmutable())) {
+        if (null === $token || $token->isExpired(new \DateTimeImmutable())) {
             throw new UnprocessableEntityHttpException('Invalid or expired token.');
         }
 

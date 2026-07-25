@@ -4,7 +4,6 @@ namespace App\Tests\Application\CatalogSearch;
 
 use App\CatalogSearch\EventListener\MarkProjectFailedOnMatchingFailure;
 use App\CatalogSearch\Message\MatchProjectProductsMessage;
-use App\Project\Entity\Project;
 use App\Project\Enum\ProjectStatus;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProjectFactory;

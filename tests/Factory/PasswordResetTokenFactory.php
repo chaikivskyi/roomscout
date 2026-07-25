@@ -3,7 +3,6 @@
 namespace App\Tests\Factory;
 
 use App\Identity\Entity\PasswordResetToken;
-use DateTimeImmutable;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
@@ -21,7 +20,7 @@ final class PasswordResetTokenFactory extends PersistentObjectFactory
         return [
             'user' => UserFactory::new(),
             'tokenHash' => hash('sha256', bin2hex(random_bytes(32))),
-            'expiresAt' => new DateTimeImmutable('+1 hour'),
+            'expiresAt' => new \DateTimeImmutable('+1 hour'),
         ];
     }
 }

@@ -13,7 +13,6 @@ use App\Project\Service\ProjectImageStorage;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
-use Throwable;
 
 /**
  * @implements ProcessorInterface<ProjectRequest, ProjectOutput>
@@ -42,7 +41,7 @@ final class CreateProjectProcessor implements ProcessorInterface
         try {
             $project = new Project($user, $imagePath, $data->prompt);
             $this->projects->save($project);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->imageStorage->remove($imagePath);
 
             throw $e;

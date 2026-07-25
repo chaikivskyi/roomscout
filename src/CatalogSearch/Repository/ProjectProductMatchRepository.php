@@ -74,9 +74,6 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
         return 0 < $this->count(['project' => $projectId]);
     }
 
-    /**
-     * @return int
-     */
     public function insertMatchesWithinCosineDistance(
         Uuid $projectId,
         Vector $query,

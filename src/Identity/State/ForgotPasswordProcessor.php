@@ -4,11 +4,10 @@ namespace App\Identity\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Identity\ApiResource\ForgotPasswordRequest;
 use App\Identity\Api\PasswordResetTokenRepositoryInterface;
 use App\Identity\Api\UserRepositoryInterface;
+use App\Identity\ApiResource\ForgotPasswordRequest;
 use App\Identity\Entity\PasswordResetToken;
-use DateTimeImmutable;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
@@ -40,7 +39,7 @@ final class ForgotPasswordProcessor implements ProcessorInterface
         $this->resetTokens->deleteForUser($user);
 
         $plainToken = bin2hex(random_bytes(32));
-        $expiresAt = new DateTimeImmutable(self::TOKEN_TTL);
+        $expiresAt = new \DateTimeImmutable(self::TOKEN_TTL);
 
         $this->resetTokens->save(new PasswordResetToken($user, hash('sha256', $plainToken), $expiresAt));
 

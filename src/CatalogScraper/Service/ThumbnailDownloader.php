@@ -8,7 +8,6 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mime\MimeTypesInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
-use Throwable;
 
 class ThumbnailDownloader
 {
@@ -58,7 +57,7 @@ class ThumbnailDownloader
             }
 
             return $this->persist($identifier, $extension, $content);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->logger->warning('Failed to store thumbnail {url}: {message}', [
                 'url' => $sourceUrl,
                 'message' => $e->getMessage(),

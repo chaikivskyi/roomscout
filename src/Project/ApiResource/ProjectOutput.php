@@ -2,15 +2,13 @@
 
 namespace App\Project\ApiResource;
 
-use DateTimeImmutable;
-
 final class ProjectOutput
 {
     public function __construct(
         public readonly string $id,
         public readonly string $prompt,
         public readonly string $status,
-        public readonly DateTimeImmutable $createdAt,
+        public readonly \DateTimeImmutable $createdAt,
     ) {
     }
 }

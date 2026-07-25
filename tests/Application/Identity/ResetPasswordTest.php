@@ -6,7 +6,6 @@ use App\Identity\Entity\PasswordResetToken;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\PasswordResetTokenFactory;
 use App\Tests\Factory\UserFactory;
-use DateTimeImmutable;
 
 final class ResetPasswordTest extends ApiTestCase
 {
@@ -64,7 +63,7 @@ final class ResetPasswordTest extends ApiTestCase
         PasswordResetTokenFactory::createOne([
             'user' => UserFactory::createOne(['email' => 'expired@example.com']),
             'tokenHash' => hash('sha256', $plainToken),
-            'expiresAt' => new DateTimeImmutable('-1 minute'),
+            'expiresAt' => new \DateTimeImmutable('-1 minute'),
         ]);
 
         static::createClient()->request('POST', '/api/reset-password', [

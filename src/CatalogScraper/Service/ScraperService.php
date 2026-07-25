@@ -6,7 +6,6 @@ use App\Catalog\Api\ProductRepositoryInterface;
 use App\CatalogScraper\Entity\ScrapeSource;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 class ScraperService
 {
@@ -94,7 +93,7 @@ class ScraperService
                 $this->products->save($product);
 
                 $isNew ? ++$created : ++$updated;
-            } catch (Throwable $e) {
+            } catch (\Throwable $e) {
                 ++$skipped;
                 $this->logger->error('Failed to scrape product {url}: {message}', [
                     'url' => $productUrl,

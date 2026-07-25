@@ -5,8 +5,8 @@ namespace App\Catalog\EventListener;
 use App\Catalog\Entity\Product;
 use App\Catalog\Service\ProductThumbnailHasher;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
-use Doctrine\ORM\Events;
 use Doctrine\ORM\Event\OnFlushEventArgs;
+use Doctrine\ORM\Events;
 
 /**
  * Keeps Product::thumbnailHash in sync with the stored thumbnail file on every

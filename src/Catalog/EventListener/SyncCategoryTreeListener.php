@@ -8,7 +8,6 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
-use LogicException;
 
 #[AsDoctrineListener(event: Events::onFlush)]
 #[AsDoctrineListener(event: Events::postFlush)]
@@ -44,7 +43,7 @@ final class SyncCategoryTreeListener
 
             if ($entity->refreshTreeFields()) {
                 $uow->recomputeSingleEntityChangeSet($em->getClassMetadata(Category::class), $entity);
-                $this->changedSubtreeRootIds[] = $entity->getId() ?? throw new LogicException('A Category scheduled for update must have an id.');
+                $this->changedSubtreeRootIds[] = $entity->getId() ?? throw new \LogicException('A Category scheduled for update must have an id.');
             }
         }
     }

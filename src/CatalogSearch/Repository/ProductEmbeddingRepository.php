@@ -26,5 +26,4 @@ class ProductEmbeddingRepository extends ServiceEntityRepository
         $this->getEntityManager()->persist($embedding);
         $this->getEntityManager()->flush();
     }
-
 }

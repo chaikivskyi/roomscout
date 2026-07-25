@@ -3,7 +3,6 @@
 namespace App\CatalogScraper\Scheduler;
 
 use App\CatalogScraper\Message\RunScrapeMessage;
-use DateTimeZone;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule;
@@ -16,7 +15,7 @@ final class CatalogScraperSchedule implements ScheduleProviderInterface
     {
         return (new Schedule())
             ->add(
-                RecurringMessage::cron('0 0 * * *', new RunScrapeMessage(), new DateTimeZone('UTC')),
+                RecurringMessage::cron('0 0 * * *', new RunScrapeMessage(), new \DateTimeZone('UTC')),
             )
             ->processOnlyLastMissedRun(true);
     }

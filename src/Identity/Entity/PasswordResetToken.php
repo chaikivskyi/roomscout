@@ -3,7 +3,6 @@
 namespace App\Identity\Entity;
 
 use App\Identity\Repository\PasswordResetTokenRepository;
-use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PasswordResetTokenRepository::class)]
@@ -22,7 +21,7 @@ class PasswordResetToken
         #[ORM\Column(length: 64)]
         private readonly string $tokenHash,
         #[ORM\Column]
-        private readonly DateTimeImmutable $expiresAt,
+        private readonly \DateTimeImmutable $expiresAt,
     ) {
     }
 
@@ -41,12 +40,12 @@ class PasswordResetToken
         return $this->tokenHash;
     }
 
-    public function getExpiresAt(): DateTimeImmutable
+    public function getExpiresAt(): \DateTimeImmutable
     {
         return $this->expiresAt;
     }
 
-    public function isExpired(DateTimeImmutable $now): bool
+    public function isExpired(\DateTimeImmutable $now): bool
     {
         return $this->expiresAt < $now;
     }

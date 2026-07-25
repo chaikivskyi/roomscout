@@ -3,14 +3,13 @@
 namespace App\CatalogScraper\Service;
 
 use App\CatalogScraper\Entity\ScrapeSource;
-use DOMElement;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\UriResolver;
 
 class ProductUrlCollector
 {
     public function __construct(
-        private PageFetcher $pageFetcher
+        private PageFetcher $pageFetcher,
     ) {
     }
 
@@ -30,7 +29,7 @@ class ProductUrlCollector
             $crawler = $this->pageFetcher->fetch($pageUrl);
 
             foreach ($crawler->filter($productSelector) as $node) {
-                if (!$node instanceof DOMElement) {
+                if (!$node instanceof \DOMElement) {
                     continue;
                 }
 
