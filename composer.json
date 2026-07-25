@@ -119,6 +119,7 @@
     },
     "require-dev": {
         "dama/doctrine-test-bundle": "^8.6",
+        "deptrac/deptrac": "^4.7",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan-doctrine": "^2.0",
         "phpstan/phpstan-symfony": "^2.0",

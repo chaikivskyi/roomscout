@@ -30,6 +30,10 @@
 phpstan.neon
 ###< phpstan/phpstan ###
 
+###> deptrac/deptrac ###
+/.deptrac.cache
+###< deptrac/deptrac ###
+
 ###> friendsofphp/php-cs-fixer ###
 /.php-cs-fixer.php
 /.php-cs-fixer.cache

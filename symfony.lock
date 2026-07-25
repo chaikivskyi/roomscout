@@ -16,6 +16,9 @@
     "dama/doctrine-test-bundle": {
         "version": "v8.6.0"
     },
+    "deptrac/deptrac": {
+        "version": "4.7.1"
+    },
     "doctrine/deprecations": {
         "version": "1.1",
         "recipe": {

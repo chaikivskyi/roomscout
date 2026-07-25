@@ -1,0 +1,55 @@
+deptrac:
+  paths:
+    - src
+
+  layers:
+    - name: Api
+      collectors:
+        - type: directory
+          value: src/Api/.*
+    - name: Catalog
+      collectors:
+        - type: directory
+          value: src/Catalog/.*
+    - name: CatalogScraper
+      collectors:
+        - type: directory
+          value: src/CatalogScraper/.*
+    - name: CatalogSearch
+      collectors:
+        - type: directory
+          value: src/CatalogSearch/.*
+    - name: Identity
+      collectors:
+        - type: directory
+          value: src/Identity/.*
+    - name: Project
+      collectors:
+        - type: directory
+          value: src/Project/.*
+    - name: Admin
+      collectors:
+        - type: directory
+          value: src/Admin/.*
+
+  # Allowed dependencies between modules. Anything not listed here
+  # (a new edge or a cycle) fails the analysis.
+  ruleset:
+    Api: ~
+    Catalog: ~
+    CatalogScraper:
+      - Catalog
+    CatalogSearch:
+      - Api
+      - Catalog
+      - Identity
+      - Project
+    Identity:
+      - Api
+    Project:
+      - Api
+      - Identity
+    Admin:
+      - Catalog
+      - CatalogScraper
+      - Identity
