@@ -2,7 +2,8 @@
 
 namespace App\Tests\Application\Project;
 
-use App\Project\Entity\Project;
+use App\Project\Entity\ProjectContext;
+use App\Project\Enum\ProjectContextStatus;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use League\Flysystem\FilesystemOperator;
@@ -49,15 +50,19 @@ final class CreateProjectTest extends ApiTestCase
         self::assertNotEmpty($data['id']);
         self::assertNotEmpty($data['createdAt']);
 
-        $query = $this->entityManager()->getRepository(Project::class)
-            ->findOneBy(['prompt' => 'find a similar lamp']);
-        self::assertNotNull($query);
-        self::assertSame($data['id'], $query->getId()->toRfc4122());
-        self::assertSame($user->getId(), $query->getUser()->getId());
-        self::assertStringEndsWith('/image.png', $query->getImagePath());
+        $contexts = $this->entityManager()->getRepository(ProjectContext::class);
+        $context = $contexts->findOneBy(['prompt' => 'find a similar lamp']);
+        self::assertNotNull($context);
+        self::assertSame(ProjectContextStatus::Processing, $context->getStatus());
 
-        self::assertTrue($this->storage()->fileExists($query->getImagePath()));
-        self::assertSame(base64_decode(self::PNG_1X1), $this->storage()->read($query->getImagePath()));
+        $project = $context->getProject();
+        self::assertSame($data['id'], $project->getId()->toRfc4122());
+        self::assertSame($user->getId(), $project->getUser()->getId());
+        self::assertStringEndsWith('/image.png', $project->getImagePath());
+        self::assertSame(1, $contexts->count(['project' => $project->getId()]));
+
+        self::assertTrue($this->storage()->fileExists($project->getImagePath()));
+        self::assertSame(base64_decode(self::PNG_1X1), $this->storage()->read($project->getImagePath()));
     }
 
     public function testRequiresAuthentication(): void

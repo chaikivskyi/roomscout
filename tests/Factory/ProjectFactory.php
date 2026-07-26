@@ -20,7 +20,6 @@ final class ProjectFactory extends PersistentObjectFactory
         return [
             'user' => UserFactory::new(),
             'imagePath' => self::faker()->uuid().'/image.jpg',
-            'prompt' => self::faker()->sentence(),
         ];
     }
 }

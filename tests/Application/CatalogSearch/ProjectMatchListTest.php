@@ -2,10 +2,12 @@
 
 namespace App\Tests\Application\CatalogSearch;
 
-use App\Project\Entity\Project;
+use App\Identity\Entity\User;
+use App\Project\Entity\ProjectContext;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\CategoryFactory;
 use App\Tests\Factory\ProductFactory;
+use App\Tests\Factory\ProjectContextFactory;
 use App\Tests\Factory\ProjectFactory;
 use App\Tests\Factory\ProjectProductMatchFactory;
 use App\Tests\Factory\UserFactory;
@@ -17,7 +19,7 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testListsMatchesBestFirstWithProductDetails(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
         $product = ProductFactory::createOne([
             'title' => 'Walnut coffee table',
             'description' => 'Mid-century walnut coffee table.',
@@ -26,12 +28,12 @@ final class ProjectMatchListTest extends ApiTestCase
             'price' => 249.5,
             'widthSm' => 120.0,
         ]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $product, 'matchScore' => 0.91]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'matchScore' => 0.62]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'matchScore' => 0.77]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $product, 'matchScore' => 0.91]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'matchScore' => 0.62]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'matchScore' => 0.77]);
 
         $response = $this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches');
+            ->request('GET', self::matchesUrl($context));
 
         self::assertResponseIsSuccessful();
 
@@ -52,16 +54,34 @@ final class ProjectMatchListTest extends ApiTestCase
         }
     }
 
-    public function testPriceBoundsFilterAndExcludeUnpricedProducts(): void
+    public function testListsOnlyTheRequestedContextsMatches(): void
     {
         $user = UserFactory::createOne();
         $project = ProjectFactory::createOne(['user' => $user]);
-        $this->matchWithPrice($project, 10.0);
-        $this->matchWithPrice($project, 50.0);
-        $this->matchWithPrice($project, null);
+        $context = ProjectContextFactory::new(['project' => $project])->completed()->create();
+        $sibling = ProjectContextFactory::new(['project' => $project])->completed()->create();
+
+        $product = ProductFactory::createOne();
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $product, 'matchScore' => 0.9]);
+        ProjectProductMatchFactory::createOne(['context' => $sibling, 'matchScore' => 0.95]);
+
+        $data = self::decode($this->authClient($this->tokenFor($user))
+            ->request('GET', self::matchesUrl($context)));
+
+        self::assertSame(1, $data['totalItems']);
+        self::assertSame([$product->getUuid()->toRfc4122()], array_column($data['member'], 'id'));
+    }
+
+    public function testPriceBoundsFilterAndExcludeUnpricedProducts(): void
+    {
+        $user = UserFactory::createOne();
+        $context = $this->contextFor($user);
+        $this->matchWithPrice($context, 10.0);
+        $this->matchWithPrice($context, 50.0);
+        $this->matchWithPrice($context, null);
 
         $client = $this->authClient($this->tokenFor($user));
-        $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
+        $url = self::matchesUrl($context);
 
         $data = self::decode($client->request('GET', $url.'?priceMin=20'));
         self::assertSame([50.0], $this->memberPrices($data));
@@ -76,7 +96,7 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testCategoryFilterIncludesDescendantCategories(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
         $parent = CategoryFactory::createOne(['title' => 'Tables']);
         $child = CategoryFactory::createOne(['title' => 'Coffee tables', 'parent' => $parent]);
         $other = CategoryFactory::createOne(['title' => 'Lighting']);
@@ -84,12 +104,12 @@ final class ProjectMatchListTest extends ApiTestCase
         $inParent = ProductFactory::createOne(['category' => $parent]);
         $inChild = ProductFactory::createOne(['category' => $child]);
         $inOther = ProductFactory::createOne(['category' => $other]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $inParent]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $inChild]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $inOther]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $inParent]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $inChild]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $inOther]);
 
         $client = $this->authClient($this->tokenFor($user));
-        $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
+        $url = self::matchesUrl($context);
 
         $data = self::decode($client->request('GET', $url.'?category='.$parent->getId()));
         self::assertSame(2, $data['totalItems']);
@@ -109,13 +129,13 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testSortByPricePutsUnpricedProductsLastInBothDirections(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
-        $this->matchWithPrice($project, 30.0);
-        $this->matchWithPrice($project, 10.0);
-        $this->matchWithPrice($project, null);
+        $context = $this->contextFor($user);
+        $this->matchWithPrice($context, 30.0);
+        $this->matchWithPrice($context, 10.0);
+        $this->matchWithPrice($context, null);
 
         $client = $this->authClient($this->tokenFor($user));
-        $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
+        $url = self::matchesUrl($context);
 
         $data = self::decode($client->request('GET', $url.'?sort=price&direction=asc'));
         self::assertSame([10.0, 30.0, null], $this->memberPrices($data));
@@ -127,13 +147,13 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testSortByScoreAscendingReversesDefaultOrder(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'matchScore' => 0.91]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'matchScore' => 0.62]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'matchScore' => 0.77]);
+        $context = $this->contextFor($user);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'matchScore' => 0.91]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'matchScore' => 0.62]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'matchScore' => 0.77]);
 
         $data = self::decode($this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches?sort=score&direction=asc'));
+            ->request('GET', self::matchesUrl($context).'?sort=score&direction=asc'));
 
         self::assertSame([0.62, 0.77, 0.91], array_column($data['member'], 'score'));
     }
@@ -141,19 +161,19 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testCombinedCategoryAndPriceFiltersIntersect(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
         $tables = CategoryFactory::createOne(['title' => 'Tables']);
         $lighting = CategoryFactory::createOne(['title' => 'Lighting']);
 
         $cheapTable = ProductFactory::createOne(['category' => $tables, 'price' => 10.0]);
         $priceyTable = ProductFactory::createOne(['category' => $tables, 'price' => 100.0]);
         $priceyLamp = ProductFactory::createOne(['category' => $lighting, 'price' => 80.0]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $cheapTable]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $priceyTable]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $priceyLamp]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $cheapTable]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $priceyTable]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $priceyLamp]);
 
         $data = self::decode($this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches?category='.$tables->getId().'&priceMin=50'));
+            ->request('GET', self::matchesUrl($context).'?category='.$tables->getId().'&priceMin=50'));
 
         self::assertSame(1, $data['totalItems']);
         self::assertSame($priceyTable->getUuid()->toRfc4122(), $data['member'][0]['id']);
@@ -162,14 +182,14 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testEqualScoresAndPricesTiebreakByProductIdForStablePagination(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
         $first = ProductFactory::createOne(['price' => 20.0]);
         $second = ProductFactory::createOne(['price' => 20.0]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $second, 'matchScore' => 0.8]);
-        ProjectProductMatchFactory::createOne(['project' => $project, 'product' => $first, 'matchScore' => 0.8]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $second, 'matchScore' => 0.8]);
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $first, 'matchScore' => 0.8]);
 
         $client = $this->authClient($this->tokenFor($user));
-        $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
+        $url = self::matchesUrl($context);
         $expected = [$first->getUuid()->toRfc4122(), $second->getUuid()->toRfc4122()];
 
         $data = self::decode($client->request('GET', $url));
@@ -182,11 +202,11 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testPaginatesWithFifteenItemsPerPage(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
-        ProjectProductMatchFactory::createMany(20, ['project' => $project]);
+        $context = $this->contextFor($user);
+        ProjectProductMatchFactory::createMany(20, ['context' => $context]);
 
         $client = $this->authClient($this->tokenFor($user));
-        $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
+        $url = self::matchesUrl($context);
 
         $data = self::decode($client->request('GET', $url));
         self::assertSame(20, $data['totalItems']);
@@ -198,9 +218,9 @@ final class ProjectMatchListTest extends ApiTestCase
 
     public function testAnonymousRequestReturns401(): void
     {
-        $project = ProjectFactory::createOne();
+        $context = ProjectContextFactory::createOne();
 
-        static::createClient()->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches');
+        static::createClient()->request('GET', self::matchesUrl($context));
 
         self::assertResponseStatusCodeSame(401);
     }
@@ -208,10 +228,10 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testOtherUsersProjectIsForbidden(): void
     {
         $stranger = UserFactory::createOne();
-        $project = ProjectFactory::createOne();
+        $context = ProjectContextFactory::createOne();
 
         $this->authClient($this->tokenFor($stranger))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches');
+            ->request('GET', self::matchesUrl($context));
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -219,23 +239,62 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testUnknownProjectReturns404(): void
     {
         $user = UserFactory::createOne();
+        $contextId = Uuid::v7()->toRfc4122();
 
         $client = $this->authClient($this->tokenFor($user));
 
-        $client->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/matches');
+        $client->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.$contextId.'/matches');
         self::assertResponseStatusCodeSame(404);
 
-        $client->request('GET', '/api/projects/not-a-uuid/matches');
+        $client->request('GET', '/api/projects/not-a-uuid/contexts/'.$contextId.'/matches');
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testProjectWithoutMatchesReturnsEmptyCollection(): void
+    public function testUnknownOrForeignContextReturns404(): void
     {
         $user = UserFactory::createOne();
         $project = ProjectFactory::createOne(['user' => $user]);
+        $otherProjectContext = ProjectContextFactory::createOne([
+            'project' => ProjectFactory::new(['user' => $user]),
+        ]);
+
+        $client = $this->authClient($this->tokenFor($user));
+        $base = '/api/projects/'.$project->getId()->toRfc4122().'/contexts/';
+
+        $client->request('GET', $base.Uuid::v7()->toRfc4122().'/matches');
+        self::assertResponseStatusCodeSame(404);
+
+        $client->request('GET', $base.'not-a-uuid/matches');
+        self::assertResponseStatusCodeSame(404);
+
+        // A real context id nested under the wrong project is not found either.
+        $client->request('GET', $base.$otherProjectContext->getId()->toRfc4122().'/matches');
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testProcessingContextReturns202WithRetryAfter(): void
+    {
+        $user = UserFactory::createOne();
+        $context = ProjectContextFactory::createOne([
+            'project' => ProjectFactory::new(['user' => $user]),
+        ]);
+        ProjectProductMatchFactory::createOne(['context' => $context]);
+
+        $response = $this->authClient($this->tokenFor($user))
+            ->request('GET', self::matchesUrl($context));
+
+        self::assertResponseStatusCodeSame(202);
+        self::assertResponseHeaderSame('Retry-After', '5');
+        self::assertJsonContains(['status' => 'processing']);
+    }
+
+    public function testContextWithoutMatchesReturnsEmptyCollection(): void
+    {
+        $user = UserFactory::createOne();
+        $context = $this->contextFor($user);
 
         $data = self::decode($this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/matches'));
+            ->request('GET', self::matchesUrl($context)));
 
         self::assertResponseIsSuccessful();
         self::assertSame(0, $data['totalItems']);
@@ -245,10 +304,10 @@ final class ProjectMatchListTest extends ApiTestCase
     public function testInvalidQueryParametersAreRejected(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
 
         $client = $this->authClient($this->tokenFor($user));
-        $url = '/api/projects/'.$project->getId()->toRfc4122().'/matches';
+        $url = self::matchesUrl($context);
 
         $client->request('GET', $url.'?sort=bogus');
         self::assertResponseStatusCodeSame(422);
@@ -265,6 +324,13 @@ final class ProjectMatchListTest extends ApiTestCase
         $client->request('GET', $url.'?priceMin=abc');
         self::assertResponseStatusCodeSame(422);
 
+        // Price filters accept whole units only.
+        $client->request('GET', $url.'?priceMin=10.5');
+        self::assertResponseStatusCodeSame(422);
+
+        $client->request('GET', $url.'?priceMax=10.5');
+        self::assertResponseStatusCodeSame(422);
+
         $client->request('GET', $url.'?category=abc');
         self::assertResponseStatusCodeSame(422);
 
@@ -275,10 +341,23 @@ final class ProjectMatchListTest extends ApiTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
-    private function matchWithPrice(Project $project, ?float $price): void
+    private function contextFor(User $user): ProjectContext
+    {
+        return ProjectContextFactory::new([
+            'project' => ProjectFactory::new(['user' => $user]),
+        ])->completed()->create();
+    }
+
+    private static function matchesUrl(ProjectContext $context): string
+    {
+        return '/api/projects/'.$context->getProject()->getId()->toRfc4122()
+            .'/contexts/'.$context->getId()->toRfc4122().'/matches';
+    }
+
+    private function matchWithPrice(ProjectContext $context, ?float $price): void
     {
         ProjectProductMatchFactory::createOne([
-            'project' => $project,
+            'context' => $context,
             'product' => ProductFactory::createOne(['price' => $price]),
         ]);
     }

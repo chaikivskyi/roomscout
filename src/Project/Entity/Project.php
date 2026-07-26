@@ -3,9 +3,7 @@
 namespace App\Project\Entity;
 
 use App\Identity\Entity\User;
-use App\Project\Enum\ProjectStatus;
 use App\Project\Repository\ProjectRepository;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
@@ -24,55 +22,16 @@ class Project
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    #[ORM\Column(length: 16, enumType: ProjectStatus::class)]
-    private ProjectStatus $status;
-
     public function __construct(
         #[ORM\ManyToOne(targetEntity: User::class)]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
         private readonly User $user,
         #[ORM\Column(length: 255)]
         private readonly string $imagePath,
-        #[ORM\Column(type: Types::TEXT)]
-        private string $prompt,
     ) {
         $this->id = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
-        $this->status = ProjectStatus::Processing;
-    }
-
-    public function getStatus(): ProjectStatus
-    {
-        return $this->status;
-    }
-
-    /**
-     * @return bool whether the status changed
-     */
-    public function markCompleted(): bool
-    {
-        if (ProjectStatus::Completed === $this->status) {
-            return false;
-        }
-
-        $this->status = ProjectStatus::Completed;
-
-        return true;
-    }
-
-    /**
-     * @return bool whether the status changed
-     */
-    public function markFailed(): bool
-    {
-        if (ProjectStatus::Processing !== $this->status) {
-            return false;
-        }
-
-        $this->status = ProjectStatus::Failed;
-
-        return true;
     }
 
     public function getId(): Uuid
@@ -88,18 +47,6 @@ class Project
     public function getImagePath(): string
     {
         return $this->imagePath;
-    }
-
-    public function getPrompt(): string
-    {
-        return $this->prompt;
-    }
-
-    public function setPrompt(string $prompt): static
-    {
-        $this->prompt = $prompt;
-
-        return $this;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

@@ -14,14 +14,16 @@ use App\CatalogSearch\Entity\ProjectProductMatch;
 use App\CatalogSearch\Enum\MatchSort;
 use App\CatalogSearch\Enum\SortDirection;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
-use App\Identity\Entity\User;
-use App\Project\Repository\ProjectRepository;
+use App\Project\Entity\ProjectContext;
+use App\Project\Enum\ProjectContextStatus;
+use App\Project\Repository\ProjectContextRepository;
+use App\Project\Service\OwnedProjectResolver;
 use League\Flysystem\FilesystemOperator;
-use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -30,8 +32,8 @@ use Symfony\Component\Uid\Uuid;
 final class ProjectMatchCollectionProvider implements ProviderInterface
 {
     public function __construct(
-        private readonly Security $security,
-        private readonly ProjectRepository $projects,
+        private readonly OwnedProjectResolver $projectResolver,
+        private readonly ProjectContextRepository $contexts,
         private readonly ProjectProductMatchRepository $matches,
         private readonly CategoryRepository $categories,
         private readonly Pagination $pagination,
@@ -40,30 +42,23 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
     ) {
     }
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): TraversablePaginator
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): TraversablePaginator|JsonResponse
     {
-        $projectId = $uriVariables['projectId'] ?? null;
+        $project = $this->projectResolver->resolve($uriVariables['projectId'] ?? null);
+        $projectContext = $this->resolveContext($project->getId(), $uriVariables['contextId'] ?? null);
 
-        if (!\is_string($projectId) || !Uuid::isValid($projectId)) {
-            throw new NotFoundHttpException('Project not found.');
-        }
-
-        $project = $this->projects->find(Uuid::fromString($projectId));
-
-        if (null === $project) {
-            throw new NotFoundHttpException('Project not found.');
-        }
-
-        $user = $this->security->getUser();
-
-        if (!$user instanceof User || $project->getUser()->getId() !== $user->getId()) {
-            throw new AccessDeniedException();
+        if (ProjectContextStatus::Processing === $projectContext->getStatus()) {
+            return new JsonResponse(
+                ['status' => ProjectContextStatus::Processing->value],
+                Response::HTTP_ACCEPTED,
+                ['Retry-After' => '5'],
+            );
         }
 
         $priceMin = $this->parameter($operation, 'priceMin');
-        $priceMin = \is_float($priceMin) ? $priceMin : null;
+        $priceMin = \is_int($priceMin) ? $priceMin : null;
         $priceMax = $this->parameter($operation, 'priceMax');
-        $priceMax = \is_float($priceMax) ? $priceMax : null;
+        $priceMax = \is_int($priceMax) ? $priceMax : null;
 
         if (null !== $priceMin && null !== $priceMax && $priceMin > $priceMax) {
             throw new UnprocessableEntityHttpException('min price must not exceed max price.');
@@ -87,8 +82,8 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
         $sort = $this->parameter($operation, 'sort');
         $direction = $this->parameter($operation, 'direction');
 
-        ['items' => $items, 'total' => $total] = $this->matches->findPageForProject(
-            $project->getId(),
+        ['items' => $items, 'total' => $total] = $this->matches->findPageForContext(
+            $projectContext->getId(),
             new ProjectMatchCriteria(
                 priceMin: $priceMin,
                 priceMax: $priceMax,
@@ -106,6 +101,21 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
             $limit,
             $total,
         );
+    }
+
+    private function resolveContext(Uuid $projectId, mixed $contextId): ProjectContext
+    {
+        if (!\is_string($contextId) || !Uuid::isValid($contextId)) {
+            throw new NotFoundHttpException('Context not found.');
+        }
+
+        $projectContext = $this->contexts->findOneForProject($projectId, Uuid::fromString($contextId));
+
+        if (null === $projectContext) {
+            throw new NotFoundHttpException('Context not found.');
+        }
+
+        return $projectContext;
     }
 
     private function parameter(Operation $operation, string $name): mixed

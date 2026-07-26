@@ -2,8 +2,8 @@
 
 namespace App\CatalogSearch\EventListener;
 
-use App\CatalogSearch\Message\MatchProjectProductsMessage;
-use App\Project\Entity\Project;
+use App\CatalogSearch\Message\MatchContextProductsMessage;
+use App\Project\Entity\ProjectContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
@@ -12,7 +12,7 @@ use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Uid\Uuid;
 
 #[AsEventListener(event: WorkerMessageFailedEvent::class)]
-final class MarkProjectFailedOnMatchingFailure
+final class MarkContextFailedOnMatchingFailure
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -29,7 +29,7 @@ final class MarkProjectFailedOnMatchingFailure
 
         $message = $event->getEnvelope()->getMessage();
 
-        if (!$message instanceof MatchProjectProductsMessage) {
+        if (!$message instanceof MatchContextProductsMessage) {
             return;
         }
 
@@ -37,18 +37,18 @@ final class MarkProjectFailedOnMatchingFailure
             $this->registry->resetManager();
         }
 
-        $project = $this->entityManager->find(Project::class, Uuid::fromString($message->projectId));
+        $context = $this->entityManager->find(ProjectContext::class, Uuid::fromString($message->contextId));
 
-        if (null === $project) {
+        if (null === $context) {
             return;
         }
 
-        if (!$project->markFailed()) {
+        if (!$context->markFailed()) {
             return;
         }
 
         $this->entityManager->flush();
 
-        $this->logger->error('Matching failed permanently; project marked failed.', ['projectId' => $message->projectId]);
+        $this->logger->error('Matching failed permanently; context marked failed.', ['contextId' => $message->contextId]);
     }
 }

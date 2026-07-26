@@ -4,16 +4,12 @@ namespace App\CatalogSearch\Entity;
 
 use App\Catalog\Entity\Product;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
-use App\Project\Entity\Project;
+use App\Project\Entity\ProjectContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * A catalog product matched to a project's image+prompt query. Immutable
- * record owned by CatalogSearch; rows cascade away with either side.
- */
 #[ORM\Entity(repositoryClass: ProjectProductMatchRepository::class)]
-#[ORM\UniqueConstraint(name: 'uniq_project_product_match', columns: ['project_id', 'product_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_context_product_match', columns: ['context_id', 'product_id'])]
 class ProjectProductMatch
 {
     #[ORM\Id]
@@ -21,22 +17,17 @@ class ProjectProductMatch
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Project::class)]
-    #[ORM\JoinColumn(name: 'project_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private Project $project;
+    #[ORM\ManyToOne(targetEntity: ProjectContext::class)]
+    #[ORM\JoinColumn(name: 'context_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ProjectContext $context;
 
     #[ORM\ManyToOne(targetEntity: Product::class)]
     #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private Product $product;
 
-    /** Cosine similarity (1 - cosine distance) between query and product embedding. */
     #[ORM\Column]
     private float $matchScore;
 
-    /**
-     * Embedding model the match was computed with; matches from an older
-     * model are stale once the model is upgraded.
-     */
     #[ORM\Column(length: 64)]
     private string $model;
 
@@ -44,13 +35,13 @@ class ProjectProductMatch
     private \DateTimeImmutable $matchedAt;
 
     public function __construct(
-        Project $project,
+        ProjectContext $context,
         Product $product,
         float $matchScore,
         string $model,
         \DateTimeImmutable $matchedAt,
     ) {
-        $this->project = $project;
+        $this->context = $context;
         $this->product = $product;
         $this->matchScore = $matchScore;
         $this->model = $model;
@@ -62,9 +53,9 @@ class ProjectProductMatch
         return $this->id;
     }
 
-    public function getProject(): Project
+    public function getContext(): ProjectContext
     {
-        return $this->project;
+        return $this->context;
     }
 
     public function getProduct(): Product

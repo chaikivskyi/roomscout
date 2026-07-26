@@ -2,7 +2,7 @@
 
 namespace App\Project\Enum;
 
-enum ProjectStatus: string
+enum ProjectContextStatus: string
 {
     case Processing = 'processing';
     case Completed = 'completed';

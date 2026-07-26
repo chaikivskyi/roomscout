@@ -9,7 +9,7 @@ final class CatalogSearchTagDescriptionProvider implements TagDescriptionProvide
     public function getTagDescriptions(): array
     {
         return [
-            'CatalogSearch / Matches' => 'Catalog products matched to a project\'s image + prompt query.',
+            'CatalogSearch / Matches' => 'Catalog products matched to a project context\'s prompt + image query.',
         ];
     }
 }

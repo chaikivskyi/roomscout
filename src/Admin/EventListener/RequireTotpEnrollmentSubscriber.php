@@ -12,11 +12,6 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-/**
- * In prod, an admin without an enrolled TOTP secret would silently skip the
- * 2FA challenge (the bundle only challenges enrolled users). This guard makes
- * enrollment mandatory: un-enrolled admins can only reach the setup page.
- */
 final class RequireTotpEnrollmentSubscriber implements EventSubscriberInterface
 {
     private const string SETUP_ROUTE = 'admin_2fa_setup';

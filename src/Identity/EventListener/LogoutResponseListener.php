@@ -7,11 +7,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
 
-/**
- * Replaces the default logout redirect with an API-friendly 204.
- * Priority is above DefaultLogoutListener (64); Lexik's BlockJWTListener (0)
- * still runs afterwards and blocklists the token.
- */
 #[AsEventListener(event: LogoutEvent::class, priority: 100)]
 final class LogoutResponseListener
 {

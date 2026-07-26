@@ -2,36 +2,36 @@
 
 namespace App\CatalogSearch\Service;
 
-use App\CatalogSearch\Entity\ProjectEmbedding;
-use App\CatalogSearch\Repository\ProjectEmbeddingRepository;
-use App\Project\Entity\Project;
+use App\CatalogSearch\Entity\ProjectContextEmbedding;
+use App\CatalogSearch\Repository\ProjectContextEmbeddingRepository;
+use App\Project\Entity\ProjectContext;
 use App\Project\Service\ProjectImageStorage;
 use Pgvector\Vector;
 use Psr\Log\LoggerInterface;
 
-final class ProjectEmbeddingProvider
+final class ContextEmbeddingProvider
 {
     public function __construct(
-        private readonly ProjectEmbeddingRepository $embeddings,
+        private readonly ProjectContextEmbeddingRepository $embeddings,
         private readonly ImageEmbedderInterface $embedder,
         private readonly ProjectImageStorage $projectImages,
         private readonly LoggerInterface $logger,
     ) {
     }
 
-    public function provide(Project $project): ?ProjectEmbedding
+    public function provide(ProjectContext $context): ?ProjectContextEmbedding
     {
-        $existing = $this->embeddings->findForProject($project->getId());
+        $existing = $this->embeddings->findForContext($context->getId());
 
         if (null !== $existing) {
             return $existing;
         }
 
-        $path = $project->getImagePath();
+        $path = $context->getProject()->getImagePath();
 
         if (!$this->projectImages->exists($path)) {
-            $this->logger->warning('Cannot embed project: image is missing from storage.', [
-                'projectId' => (string) $project->getId(),
+            $this->logger->warning('Cannot embed context: project image is missing from storage.', [
+                'contextId' => (string) $context->getId(),
                 'path' => $path,
             ]);
 
@@ -39,13 +39,13 @@ final class ProjectEmbeddingProvider
         }
 
         $vector = $this->embedder->embedQuery(
-            $project->getPrompt(),
+            $context->getPrompt(),
             $this->projectImages->mimeType($path),
             $this->projectImages->read($path),
         );
 
-        $embedding = new ProjectEmbedding(
-            project: $project,
+        $embedding = new ProjectContextEmbedding(
+            context: $context,
             embedding: new Vector($vector),
             model: $this->embedder->model(),
             embeddedAt: new \DateTimeImmutable(),

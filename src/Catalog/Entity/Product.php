@@ -20,10 +20,6 @@ class Product implements ProductInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    /**
-     * Stable, application-assigned identifier, safe to expose publicly (e.g. as
-     * the thumbnail storage path) without leaking the source's product id.
-     */
     #[ORM\Column(type: UuidType::NAME)]
     private Uuid $uuid;
 

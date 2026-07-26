@@ -2,11 +2,6 @@
 
 namespace App\CatalogScraper\Enum;
 
-/**
- * Product fields that a scrape mapping can populate. `url` and `category` are
- * intentionally excluded: the product URL is the crawled detail-page URL and the
- * category is taken from the ScrapeSource.
- */
 enum ProductField: string
 {
     case Title = 'title';
@@ -32,9 +27,6 @@ enum ProductField: string
         };
     }
 
-    /**
-     * How a raw scraped string should be cast before it is stored on the Product.
-     */
     public function castType(): string
     {
         return match ($this) {
@@ -58,8 +50,6 @@ enum ProductField: string
     }
 
     /**
-     * Backing values, e.g. for an Assert\Choice constraint.
-     *
      * @return list<string>
      */
     public static function values(): array

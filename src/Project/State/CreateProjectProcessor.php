@@ -8,8 +8,9 @@ use App\Identity\Entity\User;
 use App\Project\ApiResource\ProjectOutput;
 use App\Project\ApiResource\ProjectRequest;
 use App\Project\Entity\Project;
-use App\Project\Repository\ProjectRepository;
+use App\Project\Entity\ProjectContext;
 use App\Project\Service\ProjectImageStorage;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -22,7 +23,7 @@ final class CreateProjectProcessor implements ProcessorInterface
     public function __construct(
         private readonly Security $security,
         private readonly ProjectImageStorage $imageStorage,
-        private readonly ProjectRepository $projects,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -39,8 +40,11 @@ final class CreateProjectProcessor implements ProcessorInterface
         $imagePath = $this->imageStorage->store($image);
 
         try {
-            $project = new Project($user, $imagePath, $data->prompt);
-            $this->projects->save($project);
+            $project = new Project($user, $imagePath);
+            $projectContext = new ProjectContext($project, $data->prompt);
+            $this->entityManager->persist($project);
+            $this->entityManager->persist($projectContext);
+            $this->entityManager->flush();
         } catch (\Throwable $e) {
             $this->imageStorage->remove($imagePath);
 
@@ -49,8 +53,8 @@ final class CreateProjectProcessor implements ProcessorInterface
 
         return new ProjectOutput(
             $project->getId()->toRfc4122(),
-            $project->getPrompt(),
-            $project->getStatus()->value,
+            $projectContext->getPrompt(),
+            $projectContext->getStatus()->value,
             $project->getCreatedAt(),
         );
     }

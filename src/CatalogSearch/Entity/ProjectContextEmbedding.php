@@ -2,28 +2,23 @@
 
 namespace App\CatalogSearch\Entity;
 
-use App\CatalogSearch\Repository\ProjectEmbeddingRepository;
-use App\Project\Entity\Project;
+use App\CatalogSearch\Repository\ProjectContextEmbeddingRepository;
+use App\Project\Entity\ProjectContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Pgvector\Vector;
 
-/**
- * The composed prompt+image query embedding of a project, computed once after
- * creation and reused by every matching run. Project inputs are immutable
- * (no update API), so the vector never goes stale.
- */
-#[ORM\Entity(repositoryClass: ProjectEmbeddingRepository::class)]
-class ProjectEmbedding
+#[ORM\Entity(repositoryClass: ProjectContextEmbeddingRepository::class)]
+class ProjectContextEmbedding
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\OneToOne(targetEntity: Project::class)]
-    #[ORM\JoinColumn(name: 'project_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private Project $project;
+    #[ORM\OneToOne(targetEntity: ProjectContext::class)]
+    #[ORM\JoinColumn(name: 'context_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ProjectContext $context;
 
     #[ORM\Column(type: 'vector')]
     private Vector $embedding;
@@ -35,12 +30,12 @@ class ProjectEmbedding
     private \DateTimeImmutable $embeddedAt;
 
     public function __construct(
-        Project $project,
+        ProjectContext $context,
         Vector $embedding,
         string $model,
         \DateTimeImmutable $embeddedAt,
     ) {
-        $this->project = $project;
+        $this->context = $context;
         $this->embedding = $embedding;
         $this->model = $model;
         $this->embeddedAt = $embeddedAt;
@@ -51,9 +46,9 @@ class ProjectEmbedding
         return $this->id;
     }
 
-    public function getProject(): Project
+    public function getContext(): ProjectContext
     {
-        return $this->project;
+        return $this->context;
     }
 
     public function getEmbedding(): Vector

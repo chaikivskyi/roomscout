@@ -8,13 +8,6 @@ use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
 
-/**
- * Keeps Product::thumbnailHash in sync with the stored thumbnail file on every
- * insert/update, regardless of the write path (scraper, admin, fixtures).
- *
- * onFlush rather than preUpdate: preUpdate cannot add a field to the changeset
- * that is not already in it.
- */
 #[AsDoctrineListener(event: Events::onFlush)]
 final class ComputeProductThumbnailHashListener
 {

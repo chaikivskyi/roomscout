@@ -13,8 +13,8 @@ final class ProjectMatchCriteria
     public function __construct(
         public readonly int $page,
         public readonly int $limit,
-        public readonly ?float $priceMin = null,
-        public readonly ?float $priceMax = null,
+        public readonly ?int $priceMin = null,
+        public readonly ?int $priceMax = null,
         public readonly ?array $categoryIds = null,
         public readonly MatchSort $sort = MatchSort::Score,
         public readonly SortDirection $direction = SortDirection::Desc,

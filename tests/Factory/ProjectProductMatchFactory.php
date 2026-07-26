@@ -18,7 +18,7 @@ final class ProjectProductMatchFactory extends PersistentObjectFactory
     protected function defaults(): array
     {
         return [
-            'project' => ProjectFactory::new(),
+            'context' => ProjectContextFactory::new(),
             'product' => ProductFactory::new(),
             'matchScore' => self::faker()->randomFloat(4, 0.2, 0.95),
             'model' => 'embed-test-1.0',

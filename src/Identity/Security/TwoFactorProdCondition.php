@@ -6,9 +6,6 @@ use Scheb\TwoFactorBundle\Security\TwoFactor\AuthenticationContextInterface;
 use Scheb\TwoFactorBundle\Security\TwoFactor\Condition\TwoFactorConditionInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-/**
- * 2FA is a production requirement only: dev and test log in with password alone.
- */
 final class TwoFactorProdCondition implements TwoFactorConditionInterface
 {
     public function __construct(

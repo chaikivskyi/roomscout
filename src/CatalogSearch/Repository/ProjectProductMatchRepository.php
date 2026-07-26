@@ -25,7 +25,7 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
     /**
      * @return array{items: list<ProjectProductMatch>, total: int}
      */
-    public function findPageForProject(Uuid $projectId, ProjectMatchCriteria $criteria): array
+    public function findPageForContext(Uuid $contextId, ProjectMatchCriteria $criteria): array
     {
         $order = $criteria->direction->toOrderKeyword();
 
@@ -33,8 +33,8 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
             ->addSelect('p', 'c')
             ->join('m.product', 'p')
             ->join('p.category', 'c')
-            ->where('m.project = :project')
-            ->setParameter('project', $projectId, UuidType::NAME);
+            ->where('m.context = :context')
+            ->setParameter('context', $contextId, UuidType::NAME);
 
         if (null !== $criteria->priceMin) {
             $qb->andWhere('p.price >= :priceMin')->setParameter('priceMin', $criteria->priceMin);
@@ -69,13 +69,13 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
         ];
     }
 
-    public function existsForProject(Uuid $projectId): bool
+    public function existsForContext(Uuid $contextId): bool
     {
-        return 0 < $this->count(['project' => $projectId]);
+        return 0 < $this->count(['context' => $contextId]);
     }
 
     public function insertMatchesWithinCosineDistance(
-        Uuid $projectId,
+        Uuid $contextId,
         Vector $query,
         float $maxDistance,
         int $limit,
@@ -84,15 +84,15 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
     ): int {
         return (int) $this->getEntityManager()->getConnection()->executeStatement(
             <<<'SQL'
-                INSERT INTO project_product_match (project_id, product_id, match_score, model, matched_at)
-                SELECT :projectId, e.product_id, 1 - (e.embedding <=> :query), :model, :matchedAt
+                INSERT INTO project_product_match (context_id, product_id, match_score, model, matched_at)
+                SELECT :contextId, e.product_id, 1 - (e.embedding <=> :query), :model, :matchedAt
                 FROM product_embedding e
                 WHERE (e.embedding <=> :query) <= :maxDistance
                 ORDER BY e.embedding <=> :query
                 LIMIT :limit
                 SQL,
             [
-                'projectId' => $projectId->toRfc4122(),
+                'contextId' => $contextId->toRfc4122(),
                 'query' => (string) $query,
                 'maxDistance' => $maxDistance,
                 'limit' => $limit,

@@ -2,14 +2,14 @@
 
 namespace App\CatalogSearch\Service;
 
-use App\CatalogSearch\Entity\ProjectEmbedding;
+use App\CatalogSearch\Entity\ProjectContextEmbedding;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
-use App\Project\Entity\Project;
+use App\Project\Entity\ProjectContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-final class ProjectProductMatcher
+final class ContextProductMatcher
 {
     private const MAX_MATCHES = 1000;
 
@@ -22,11 +22,11 @@ final class ProjectProductMatcher
     ) {
     }
 
-    public function match(Project $project, ProjectEmbedding $embedding): int
+    public function match(ProjectContext $context, ProjectContextEmbedding $embedding): int
     {
-        $insertedCount = (int) $this->entityManager->wrapInTransaction(function () use ($project, $embedding): int {
+        $insertedCount = (int) $this->entityManager->wrapInTransaction(function () use ($context, $embedding): int {
             $count = $this->matches->insertMatchesWithinCosineDistance(
-                $project->getId(),
+                $context->getId(),
                 $embedding->getEmbedding(),
                 1.0 - $this->minMatchScore,
                 self::MAX_MATCHES,
@@ -34,20 +34,20 @@ final class ProjectProductMatcher
                 new \DateTimeImmutable(),
             );
 
-            $project->markCompleted();
+            $context->markCompleted();
 
             return $count;
         });
 
         if (self::MAX_MATCHES === $insertedCount) {
             $this->logger->warning('Match cap hit; result set truncated.', [
-                'projectId' => (string) $project->getId(),
+                'contextId' => (string) $context->getId(),
                 'cap' => self::MAX_MATCHES,
             ]);
         }
 
-        $this->logger->info('Stored product matches for project.', [
-            'projectId' => (string) $project->getId(),
+        $this->logger->info('Stored product matches for context.', [
+            'contextId' => (string) $context->getId(),
             'count' => $insertedCount,
         ]);
 
