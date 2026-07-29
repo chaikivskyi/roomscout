@@ -27,4 +27,12 @@ class ProjectContextRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['id' => $contextId, 'project' => $projectId]);
     }
+
+    /**
+     * @return list<ProjectContext>
+     */
+    public function findAllForProject(Uuid $projectId): array
+    {
+        return $this->findBy(['project' => $projectId], ['id' => 'ASC']);
+    }
 }
