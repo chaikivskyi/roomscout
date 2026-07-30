@@ -7,15 +7,16 @@ use App\CatalogScraper\Enum\ProductField;
 use App\CatalogScraper\Repository\ScrapeSourceRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ScrapeSourceRepository::class)]
 class ScrapeSource
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: UuidType::NAME)]
+    private Uuid $id;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
@@ -71,7 +72,12 @@ class ScrapeSource
     ])]
     private array $mappings = [];
 
-    public function getId(): ?int
+    public function __construct()
+    {
+        $this->id = Uuid::v7();
+    }
+
+    public function getId(): Uuid
     {
         return $this->id;
     }

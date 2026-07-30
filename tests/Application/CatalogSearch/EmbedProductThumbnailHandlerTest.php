@@ -12,6 +12,7 @@ use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Symfony\Component\Uid\Uuid;
 
 final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 {
@@ -39,7 +40,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'e2e-test/thumbnail.png']);
         $this->storage()->write('e2e-test/thumbnail.png', base64_decode(self::PNG_1X1));
 
-        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
 
         $embedding = $this->findEmbedding($product->getId());
         self::assertNotNull($embedding);
@@ -64,7 +65,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'a1b2c3d4.png']);
         $this->storage()->write('a1b2c3d4.png', base64_decode(self::PNG_1X1));
 
-        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
 
         self::assertNotNull($this->findEmbedding($product->getId()));
     }
@@ -88,7 +89,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'oversized/thumbnail.png']);
         $this->storage()->write('oversized/thumbnail.png', $bytes);
 
-        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
 
         $url = self::sentImageUrl(self::decodeRequest($requests[0]));
         self::assertStringStartsWith('data:image/jpeg;base64,', $url);
@@ -117,7 +118,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'bomb/thumbnail.png']);
         $this->storage()->write('bomb/thumbnail.png', $bytes);
 
-        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
 
         self::assertSame(
             'data:image/png;base64,'.base64_encode($bytes),
@@ -139,7 +140,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $product = ProductFactory::createOne(['thumbnailUrl' => 'garbage/thumbnail.png']);
         $this->storage()->write('garbage/thumbnail.png', $bytes);
 
-        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
 
         self::assertStringEndsWith(
             ';base64,'.base64_encode($bytes),
@@ -155,8 +156,8 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $this->storage()->write('idempotent/thumbnail.png', base64_decode(self::PNG_1X1));
 
         $handler = $this->handler();
-        $handler(new EmbedProductThumbnailMessage((int) $product->getId()));
-        $handler(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $handler(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
+        $handler(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
 
         self::assertSame(1, $client->getRequestsCount());
         self::assertSame(1, $this->entityManager()->getRepository(ProductEmbedding::class)->count(['product' => $product->getId()]));
@@ -165,16 +166,31 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
     public function testMissingProductIsRetriedWithBoundedRetries(): void
     {
         $client = $this->mockCohere([]);
+        $unknownId = Uuid::v7();
 
         try {
-            $this->handler()(new EmbedProductThumbnailMessage(999999));
+            $this->handler()(new EmbedProductThumbnailMessage($unknownId->toRfc4122()));
             self::fail('Expected a recoverable exception.');
         } catch (RecoverableMessageHandlingException $e) {
             self::assertFalse($e->forceRetry(), 'Retries must stay bounded by the transport retry strategy.');
         }
 
         self::assertSame(0, $client->getRequestsCount());
-        self::assertNull($this->findEmbedding(999999));
+        self::assertNull($this->findEmbedding($unknownId));
+    }
+
+    public function testMalformedProductIdIsNotRetried(): void
+    {
+        $client = $this->mockCohere([]);
+
+        try {
+            $this->handler()(new EmbedProductThumbnailMessage('999999'));
+            self::fail('Expected an unrecoverable exception.');
+        } catch (UnrecoverableMessageHandlingException $e) {
+            self::assertStringContainsString('999999', $e->getMessage());
+        }
+
+        self::assertSame(0, $client->getRequestsCount());
     }
 
     public function testSkipsWhenThumbnailIsMissingFromStorage(): void
@@ -183,7 +199,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 
         $product = ProductFactory::createOne(['thumbnailUrl' => 'missing/thumbnail.png']);
 
-        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
         self::assertNull($this->findEmbedding($product->getId()));
@@ -198,7 +214,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
 
         $this->expectException(UnrecoverableMessageHandlingException::class);
         $this->expectExceptionMessage('invalid request');
-        $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+        $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
     }
 
     public function testRateLimitHonorsRetryAfter(): void
@@ -209,7 +225,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $this->storage()->write('err429/thumbnail.png', base64_decode(self::PNG_1X1));
 
         try {
-            $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+            $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
             self::fail('Expected a recoverable exception.');
         } catch (RecoverableMessageHandlingException $e) {
             self::assertSame(7000, $e->getRetryDelay());
@@ -225,7 +241,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         $this->storage()->write('err500/thumbnail.png', base64_decode(self::PNG_1X1));
 
         try {
-            $this->handler()(new EmbedProductThumbnailMessage((int) $product->getId()));
+            $this->handler()(new EmbedProductThumbnailMessage($product->getId()->toRfc4122()));
             self::fail('Expected a retryable exception.');
         } catch (\RuntimeException $e) {
             self::assertNotInstanceOf(UnrecoverableMessageHandlingException::class, $e);
@@ -254,7 +270,7 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         return static::getContainer()->get(EmbedProductThumbnailHandler::class);
     }
 
-    private function findEmbedding(?int $productId): ?ProductEmbedding
+    private function findEmbedding(Uuid $productId): ?ProductEmbedding
     {
         return $this->entityManager()->getRepository(ProductEmbedding::class)
             ->findOneBy(['product' => $productId]);

@@ -17,6 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Symfony\Component\Uid\Uuid;
 
 #[AsMessageHandler]
 final class EmbedProductThumbnailHandler
@@ -33,13 +34,14 @@ final class EmbedProductThumbnailHandler
 
     public function __invoke(EmbedProductThumbnailMessage $message): void
     {
-        $product = $this->entityManager->find(Product::class, $message->productId);
+        $productId = $this->parseProductId($message->productId);
+        $product = $this->entityManager->find(Product::class, $productId);
 
         if (null === $product) {
-            throw new RecoverableMessageHandlingException(sprintf('Product %d not found.', $message->productId), forceRetry: false);
+            throw new RecoverableMessageHandlingException(sprintf('Product %s not found.', $message->productId), forceRetry: false);
         }
 
-        if ($this->embeddings->existsForProduct($message->productId)) {
+        if ($this->embeddings->existsForProduct($productId)) {
             $this->logger->debug('Skipping embedding: product is already embedded.', ['productId' => $message->productId]);
 
             return;
@@ -73,5 +75,14 @@ final class EmbedProductThumbnailHandler
             sourceThumbnailHash: hash('sha256', $bytes),
             embeddedAt: new \DateTimeImmutable(),
         ));
+    }
+
+    private function parseProductId(string $productId): Uuid
+    {
+        try {
+            return Uuid::fromString($productId);
+        } catch (\InvalidArgumentException $e) {
+            throw new UnrecoverableMessageHandlingException(sprintf('Malformed product id "%s".', $productId), previous: $e);
+        }
     }
 }

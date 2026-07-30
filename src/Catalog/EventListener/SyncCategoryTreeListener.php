@@ -14,7 +14,7 @@ use Doctrine\ORM\Events;
 final class SyncCategoryTreeListener
 {
     /**
-     * @var list<int>
+     * @var list<string>
      */
     private array $changedSubtreeRootIds = [];
 
@@ -43,7 +43,7 @@ final class SyncCategoryTreeListener
 
             if ($entity->refreshTreeFields()) {
                 $uow->recomputeSingleEntityChangeSet($em->getClassMetadata(Category::class), $entity);
-                $this->changedSubtreeRootIds[] = $entity->getId() ?? throw new \LogicException('A Category scheduled for update must have an id.');
+                $this->changedSubtreeRootIds[] = (string) $entity->getId();
             }
         }
     }
@@ -68,6 +68,6 @@ final class SyncCategoryTreeListener
             FROM tree
             WHERE category.id = tree.id
               AND (category.level <> tree.level OR category.path_title <> tree.path_title)
-            SQL, ['ids' => $ids], ['ids' => ArrayParameterType::INTEGER]);
+            SQL, ['ids' => $ids], ['ids' => ArrayParameterType::STRING]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\CatalogSearch\Repository;
 use App\CatalogSearch\Entity\ProductEmbedding;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<ProductEmbedding>
@@ -16,7 +17,7 @@ class ProductEmbeddingRepository extends ServiceEntityRepository
         parent::__construct($registry, ProductEmbedding::class);
     }
 
-    public function existsForProduct(int $productId): bool
+    public function existsForProduct(Uuid $productId): bool
     {
         return 0 < $this->count(['product' => $productId]);
     }

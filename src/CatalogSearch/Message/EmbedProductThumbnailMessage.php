@@ -8,7 +8,7 @@ use Symfony\Component\Messenger\Attribute\AsMessage;
 final class EmbedProductThumbnailMessage
 {
     public function __construct(
-        public readonly int $productId,
+        public readonly string $productId,
     ) {
     }
 }

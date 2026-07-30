@@ -33,7 +33,7 @@ final class ProjectContextCollectionProvider implements ProviderInterface
     private function toDto(ProjectContext $context): ProjectContextOutput
     {
         return new ProjectContextOutput(
-            $context->getId()->toRfc4122(),
+            (string) $context->getId(),
             $context->getPrompt(),
             $context->getStatus()->value,
             $context->getCreatedAt(),

@@ -18,6 +18,6 @@ final class DispatchMatchingOnContextCreated
 
     public function postPersist(ProjectContext $context): void
     {
-        $this->messageBus->dispatch(new MatchContextProductsMessage($context->getId()->toRfc4122()));
+        $this->messageBus->dispatch(new MatchContextProductsMessage((string) $context->getId()));
     }
 }

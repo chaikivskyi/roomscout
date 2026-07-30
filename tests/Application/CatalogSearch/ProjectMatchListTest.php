@@ -42,16 +42,20 @@ final class ProjectMatchListTest extends ApiTestCase
         self::assertSame([0.91, 0.77, 0.62], array_column($data['member'], 'score'));
 
         $best = $data['member'][0];
-        self::assertSame($product->getUuid()->toRfc4122(), $best['id']);
+        self::assertSame($product->getId()->toRfc4122(), $best['id']);
         self::assertSame('Walnut coffee table', $best['title']);
         self::assertSame(249.5, $best['price']);
         self::assertSame('http://localhost/uploads/product/abc/thumbnail.jpg', $best['imageUrl']);
         self::assertSame(0.91, $best['score']);
         self::assertSame('https://shop.example.com/walnut-coffee-table', $best['url']);
 
-        foreach (['description', 'category', 'widthSm', 'heightSm', 'depthSm', 'model', 'matchedAt', 'externalId', 'uuid'] as $key) {
-            self::assertArrayNotHasKey($key, $best);
-        }
+        // Asserted as an exact set rather than a denylist: a denylist cannot catch a field
+        // added to Product later, and its entries quietly go vacuous when one is removed.
+        self::assertEqualsCanonicalizing(
+            ['@id', '@type', 'id', 'title', 'price', 'imageUrl', 'score', 'url'],
+            array_keys($best),
+            'The match payload must expose exactly these fields — no Product or match internals.',
+        );
     }
 
     public function testListsOnlyTheRequestedContextsMatches(): void
@@ -69,7 +73,7 @@ final class ProjectMatchListTest extends ApiTestCase
             ->request('GET', self::matchesUrl($context)));
 
         self::assertSame(1, $data['totalItems']);
-        self::assertSame([$product->getUuid()->toRfc4122()], array_column($data['member'], 'id'));
+        self::assertSame([$product->getId()->toRfc4122()], array_column($data['member'], 'id'));
     }
 
     public function testPriceBoundsFilterAndExcludeUnpricedProducts(): void
@@ -114,14 +118,14 @@ final class ProjectMatchListTest extends ApiTestCase
         $data = self::decode($client->request('GET', $url.'?category='.$parent->getId()));
         self::assertSame(2, $data['totalItems']);
         self::assertEqualsCanonicalizing(
-            [$inParent->getUuid()->toRfc4122(), $inChild->getUuid()->toRfc4122()],
+            [$inParent->getId()->toRfc4122(), $inChild->getId()->toRfc4122()],
             array_column($data['member'], 'id'),
         );
 
         $data = self::decode($client->request('GET', $url.'?category='.$child->getId()));
-        self::assertSame([$inChild->getUuid()->toRfc4122()], array_column($data['member'], 'id'));
+        self::assertSame([$inChild->getId()->toRfc4122()], array_column($data['member'], 'id'));
 
-        $data = self::decode($client->request('GET', $url.'?category=999999'));
+        $data = self::decode($client->request('GET', $url.'?category='.Uuid::v7()->toRfc4122()));
         self::assertSame(0, $data['totalItems']);
         self::assertSame([], $data['member']);
     }
@@ -176,7 +180,7 @@ final class ProjectMatchListTest extends ApiTestCase
             ->request('GET', self::matchesUrl($context).'?category='.$tables->getId().'&priceMin=50'));
 
         self::assertSame(1, $data['totalItems']);
-        self::assertSame($priceyTable->getUuid()->toRfc4122(), $data['member'][0]['id']);
+        self::assertSame($priceyTable->getId()->toRfc4122(), $data['member'][0]['id']);
     }
 
     public function testEqualScoresAndPricesTiebreakByProductIdForStablePagination(): void
@@ -190,7 +194,7 @@ final class ProjectMatchListTest extends ApiTestCase
 
         $client = $this->authClient($this->tokenFor($user));
         $url = self::matchesUrl($context);
-        $expected = [$first->getUuid()->toRfc4122(), $second->getUuid()->toRfc4122()];
+        $expected = [$first->getId()->toRfc4122(), $second->getId()->toRfc4122()];
 
         $data = self::decode($client->request('GET', $url));
         self::assertSame($expected, array_column($data['member'], 'id'));

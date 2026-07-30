@@ -5,6 +5,7 @@ namespace App\Tests\Application\Identity;
 use App\Identity\Entity\User;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\UserFactory;
+use Symfony\Component\Uid\Uuid;
 
 final class SignupTest extends ApiTestCase
 {
@@ -21,7 +22,8 @@ final class SignupTest extends ApiTestCase
         self::assertJsonContains(['email' => 'new@example.com']);
 
         $data = $response->toArray();
-        self::assertIsInt($data['id']);
+        self::assertIsString($data['id']);
+        self::assertTrue(Uuid::isValid($data['id']));
         self::assertIsString($data['token']);
         self::assertNotEmpty($data['token']);
         self::assertArrayNotHasKey('password', $data);

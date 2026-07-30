@@ -8,7 +8,7 @@ use Symfony\Component\Messenger\Attribute\AsMessage;
 final class ScrapeSourceMessage
 {
     public function __construct(
-        public readonly int $sourceId,
+        public readonly string $sourceId,
     ) {
     }
 }

@@ -7,9 +7,7 @@ use Symfony\Component\Uid\Uuid;
 
 interface ProductInterface
 {
-    public function getId(): ?int;
-
-    public function getUuid(): Uuid;
+    public function getId(): Uuid;
 
     public function getExternalId(): ?string;
 

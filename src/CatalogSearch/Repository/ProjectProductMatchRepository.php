@@ -6,6 +6,7 @@ use App\CatalogSearch\Dto\ProjectMatchCriteria;
 use App\CatalogSearch\Entity\ProjectProductMatch;
 use App\CatalogSearch\Enum\MatchSort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 use Pgvector\Vector;
@@ -45,7 +46,8 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
         }
 
         if (null !== $criteria->categoryIds) {
-            $qb->andWhere('p.category IN (:categoryIds)')->setParameter('categoryIds', $criteria->categoryIds);
+            $qb->andWhere('p.category IN (:categoryIds)')
+                ->setParameter('categoryIds', $criteria->categoryIds, ArrayParameterType::STRING);
         }
 
         if (MatchSort::Price === $criteria->sort) {
@@ -84,15 +86,15 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
     ): int {
         return (int) $this->getEntityManager()->getConnection()->executeStatement(
             <<<'SQL'
-                INSERT INTO project_product_match (context_id, product_id, match_score, model, matched_at)
-                SELECT :contextId, e.product_id, 1 - (e.embedding <=> :query), :model, :matchedAt
+                INSERT INTO project_product_match (id, context_id, product_id, match_score, model, matched_at)
+                SELECT uuidv7(), :contextId, e.product_id, 1 - (e.embedding <=> :query), :model, :matchedAt
                 FROM product_embedding e
                 WHERE (e.embedding <=> :query) <= :maxDistance
                 ORDER BY e.embedding <=> :query
                 LIMIT :limit
                 SQL,
             [
-                'contextId' => $contextId->toRfc4122(),
+                'contextId' => (string) $contextId,
                 'query' => (string) $query,
                 'maxDistance' => $maxDistance,
                 'limit' => $limit,

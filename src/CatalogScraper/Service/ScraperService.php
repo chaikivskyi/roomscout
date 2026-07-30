@@ -54,7 +54,7 @@ class ScraperService
                 $product = $existing ?? $scraped;
                 $remoteThumbnail = $scraped->getThumbnailUrl();
                 $storedThumbnail = null !== $remoteThumbnail
-                    ? $this->thumbnailDownloader->store($remoteThumbnail, (string) $product->getUuid())
+                    ? $this->thumbnailDownloader->store($remoteThumbnail, (string) $product->getId())
                     : null;
 
                 if ($isNew) {

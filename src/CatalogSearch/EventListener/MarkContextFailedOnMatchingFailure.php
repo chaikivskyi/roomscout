@@ -33,6 +33,10 @@ final class MarkContextFailedOnMatchingFailure
             return;
         }
 
+        if (!Uuid::isValid($message->contextId)) {
+            return;
+        }
+
         if (!$this->entityManager->isOpen()) {
             $this->registry->resetManager();
         }

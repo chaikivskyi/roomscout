@@ -29,7 +29,7 @@ final class CreateProjectContextProcessor implements ProcessorInterface
         $this->contexts->save($projectContext);
 
         return new ProjectContextOutput(
-            $projectContext->getId()->toRfc4122(),
+            (string) $projectContext->getId(),
             $projectContext->getPrompt(),
             $projectContext->getStatus()->value,
             $projectContext->getCreatedAt(),

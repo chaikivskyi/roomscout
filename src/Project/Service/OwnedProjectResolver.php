@@ -32,7 +32,7 @@ final class OwnedProjectResolver
 
         $user = $this->security->getUser();
 
-        if (!$user instanceof User || $project->getUser()->getId() !== $user->getId()) {
+        if (!$user instanceof User || !$project->getUser()->getId()->equals($user->getId())) {
             throw new AccessDeniedException();
         }
 

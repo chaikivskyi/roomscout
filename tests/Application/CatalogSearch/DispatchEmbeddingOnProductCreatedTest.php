@@ -15,7 +15,7 @@ final class DispatchEmbeddingOnProductCreatedTest extends ApiTestCase
 
         $messages = $this->embeddingMessages();
         self::assertCount(1, $messages);
-        self::assertSame($product->getId(), $messages[0]->productId);
+        self::assertSame($product->getId()->toRfc4122(), $messages[0]->productId);
     }
 
     public function testUpdatingProductQueuesNothing(): void

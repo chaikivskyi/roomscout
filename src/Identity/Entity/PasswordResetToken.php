@@ -4,15 +4,16 @@ namespace App\Identity\Entity;
 
 use App\Identity\Repository\PasswordResetTokenRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: PasswordResetTokenRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_password_reset_token_hash', columns: ['token_hash'])]
 class PasswordResetToken
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: UuidType::NAME)]
+    private Uuid $id;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: User::class)]
@@ -23,9 +24,10 @@ class PasswordResetToken
         #[ORM\Column]
         private readonly \DateTimeImmutable $expiresAt,
     ) {
+        $this->id = Uuid::v7();
     }
 
-    public function getId(): ?int
+    public function getId(): Uuid
     {
         return $this->id;
     }

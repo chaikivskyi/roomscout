@@ -12,16 +12,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_product_external_id', columns: ['external_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_product_uuid', columns: ['uuid'])]
 class Product implements ProductInterface
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
     #[ORM\Column(type: UuidType::NAME)]
-    private Uuid $uuid;
+    private Uuid $id;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Length(max: 255)]
@@ -73,17 +68,12 @@ class Product implements ProductInterface
 
     public function __construct()
     {
-        $this->uuid = Uuid::v7();
+        $this->id = Uuid::v7();
     }
 
-    public function getId(): ?int
+    public function getId(): Uuid
     {
         return $this->id;
-    }
-
-    public function getUuid(): Uuid
-    {
-        return $this->uuid;
     }
 
     public function getExternalId(): ?string

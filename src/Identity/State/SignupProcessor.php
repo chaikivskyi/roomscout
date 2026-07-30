@@ -40,8 +40,6 @@ final class SignupProcessor implements ProcessorInterface
             throw new ValidationException(new ConstraintViolationList([new ConstraintViolation(new UniqueUserEmail()->message, null, [], $data, 'email', $data->email)]), previous: $e);
         }
 
-        $id = $user->getId() ?? throw new \LogicException('A persisted user must have an id.');
-
-        return new SignupOutput($id, $user->getUserIdentifier(), $this->jwtManager->create($user));
+        return new SignupOutput((string) $user->getId(), $user->getUserIdentifier(), $this->jwtManager->create($user));
     }
 }

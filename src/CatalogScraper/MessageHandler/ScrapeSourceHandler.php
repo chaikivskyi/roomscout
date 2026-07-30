@@ -7,6 +7,8 @@ use App\CatalogScraper\Repository\ScrapeSourceRepository;
 use App\CatalogScraper\Service\ScraperService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Symfony\Component\Uid\Uuid;
 
 #[AsMessageHandler]
 final class ScrapeSourceHandler
@@ -20,7 +22,7 @@ final class ScrapeSourceHandler
 
     public function __invoke(ScrapeSourceMessage $message): void
     {
-        $source = $this->scrapeSourceRepository->find($message->sourceId);
+        $source = $this->scrapeSourceRepository->find($this->parseSourceId($message->sourceId));
 
         if (null === $source) {
             $this->logger->warning('Scrape source #{id} no longer exists, skipping.', [
@@ -39,5 +41,14 @@ final class ScrapeSourceHandler
         }
 
         $this->scraperService->scrape($source);
+    }
+
+    private function parseSourceId(string $sourceId): Uuid
+    {
+        try {
+            return Uuid::fromString($sourceId);
+        } catch (\InvalidArgumentException $e) {
+            throw new UnrecoverableMessageHandlingException(sprintf('Malformed scrape source id "%s".', $sourceId), previous: $e);
+        }
     }
 }

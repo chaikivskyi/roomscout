@@ -15,9 +15,11 @@ use Doctrine\ORM\Mapping as ORM;
 use Scheb\TwoFactorBundle\Model\Totp\TotpConfiguration;
 use Scheb\TwoFactorBundle\Model\Totp\TotpConfigurationInterface;
 use Scheb\TwoFactorBundle\Model\Totp\TwoFactorInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
@@ -52,10 +54,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFactorInterface
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(type: UuidType::NAME)]
     #[Groups(['user:read'])]
-    private ?int $id = null;
+    private Uuid $id;
 
     #[ORM\Column(length: 180)]
     #[Assert\NotBlank]
@@ -76,7 +77,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     #[ORM\Column(length: 64, nullable: true)]
     private ?string $totpSecret = null;
 
-    public function getId(): ?int
+    public function __construct()
+    {
+        $this->id = Uuid::v7();
+    }
+
+    public function getId(): Uuid
     {
         return $this->id;
     }

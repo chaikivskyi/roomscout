@@ -30,7 +30,7 @@ final class MatchContextProductsHandler
 
     public function __invoke(MatchContextProductsMessage $message): void
     {
-        $context = $this->entityManager->find(ProjectContext::class, Uuid::fromString($message->contextId));
+        $context = $this->entityManager->find(ProjectContext::class, $this->parseContextId($message->contextId));
 
         if (null === $context) {
             $this->logger->info('Skipping matching: context was deleted.', ['contextId' => $message->contextId]);
@@ -62,5 +62,14 @@ final class MatchContextProductsHandler
         }
 
         $this->matcher->match($context, $embedding);
+    }
+
+    private function parseContextId(string $contextId): Uuid
+    {
+        try {
+            return Uuid::fromString($contextId);
+        } catch (\InvalidArgumentException $e) {
+            throw new UnrecoverableMessageHandlingException(sprintf('Malformed context id "%s".', $contextId), previous: $e);
+        }
     }
 }

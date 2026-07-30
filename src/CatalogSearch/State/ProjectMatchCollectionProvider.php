@@ -71,8 +71,8 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
         $categoryIds = null;
         $categoryId = $this->parameter($operation, 'category');
 
-        if (\is_int($categoryId)) {
-            $categoryIds = $this->categories->findSubtreeIds($categoryId);
+        if (\is_string($categoryId) && Uuid::isValid($categoryId)) {
+            $categoryIds = $this->categories->findSubtreeIds(Uuid::fromString($categoryId));
 
             if ([] === $categoryIds) {
                 return new TraversablePaginator(new \ArrayIterator([]), $page, $limit, 0);
@@ -138,7 +138,7 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
         $product = $match->getProduct();
 
         return new ProjectMatch(
-            id: $product->getUuid()->toRfc4122(),
+            id: (string) $product->getId(),
             title: (string) $product->getTitle(),
             price: $product->getPrice(),
             imageUrl: $this->thumbnailStorage->publicUrl((string) $product->getThumbnailUrl()),

@@ -7,9 +7,9 @@ use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * @extends AbstractCrudController<Category>
@@ -31,14 +31,13 @@ class CategoryCrudController extends AbstractCrudController
         $currentId = $this->getContext()?->getEntity()?->getPrimaryKeyValue();
 
         return [
-            IdField::new('id')->onlyOnIndex(),
             TextField::new('title'),
             AssociationField::new('parent')
                 ->setRequired(false)
                 ->setFormTypeOption('choice_label', 'pathTitle')
                 ->setQueryBuilder(function (QueryBuilder $qb) use ($currentId): QueryBuilder {
                     if (null !== $currentId) {
-                        $qb->andWhere('entity.id != :currentId')->setParameter('currentId', $currentId);
+                        $qb->andWhere('entity.id != :currentId')->setParameter('currentId', $currentId, UuidType::NAME);
                     }
 
                     return $qb;

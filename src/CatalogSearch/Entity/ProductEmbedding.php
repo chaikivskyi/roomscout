@@ -7,6 +7,8 @@ use App\CatalogSearch\Repository\ProductEmbeddingRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Pgvector\Vector;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: ProductEmbeddingRepository::class)]
 #[ORM\Index(name: 'idx_product_embedding_hnsw', columns: ['embedding'])]
@@ -15,9 +17,8 @@ class ProductEmbedding
     public const DIMENSIONS = 1536;
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: UuidType::NAME)]
+    private Uuid $id;
 
     #[ORM\OneToOne(targetEntity: Product::class)]
     #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
@@ -42,6 +43,7 @@ class ProductEmbedding
         string $sourceThumbnailHash,
         \DateTimeImmutable $embeddedAt,
     ) {
+        $this->id = Uuid::v7();
         $this->product = $product;
         $this->embedding = $embedding;
         $this->model = $model;
@@ -49,7 +51,7 @@ class ProductEmbedding
         $this->embeddedAt = $embeddedAt;
     }
 
-    public function getId(): ?int
+    public function getId(): Uuid
     {
         return $this->id;
     }

@@ -34,9 +34,8 @@ use Symfony\Component\Validator\Constraints\Type;
                 castToNativeType: true,
             ),
             'category' => new QueryParameter(
-                schema: ['type' => 'integer', 'minimum' => 1],
-                description: 'Category id; matches in this category or any of its descendants.',
-                castToNativeType: true,
+                schema: ['type' => 'string', 'format' => 'uuid'],
+                description: 'Category id (UUID); matches in this category or any of its descendants.',
             ),
             'sort' => new QueryParameter(
                 schema: ['type' => 'string', 'enum' => ['score', 'price'], 'default' => 'score'],

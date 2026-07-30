@@ -57,7 +57,7 @@ final class CreateProjectTest extends ApiTestCase
 
         $project = $context->getProject();
         self::assertSame($data['id'], $project->getId()->toRfc4122());
-        self::assertSame($user->getId(), $project->getUser()->getId());
+        self::assertTrue($user->getId()->equals($project->getUser()->getId()));
         self::assertStringEndsWith('/image.png', $project->getImagePath());
         self::assertSame(1, $contexts->count(['project' => $project->getId()]));
 

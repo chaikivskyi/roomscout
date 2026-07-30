@@ -8,6 +8,8 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
@@ -17,9 +19,8 @@ class Category
     public const MAX_DEPTH = 4;
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: UuidType::NAME)]
+    private Uuid $id;
 
     #[ORM\Column(length: 255)]
     #[Assert\Length(max: 255)]
@@ -51,6 +52,7 @@ class Category
 
     public function __construct()
     {
+        $this->id = Uuid::v7();
         $this->products = new ArrayCollection();
         $this->children = new ArrayCollection();
     }
@@ -60,7 +62,7 @@ class Category
         return $this->title ?? '';
     }
 
-    public function getId(): ?int
+    public function getId(): Uuid
     {
         return $this->id;
     }

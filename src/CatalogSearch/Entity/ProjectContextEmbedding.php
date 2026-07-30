@@ -7,14 +7,15 @@ use App\Project\Entity\ProjectContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Pgvector\Vector;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: ProjectContextEmbeddingRepository::class)]
 class ProjectContextEmbedding
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: UuidType::NAME)]
+    private Uuid $id;
 
     #[ORM\OneToOne(targetEntity: ProjectContext::class)]
     #[ORM\JoinColumn(name: 'context_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
@@ -35,13 +36,14 @@ class ProjectContextEmbedding
         string $model,
         \DateTimeImmutable $embeddedAt,
     ) {
+        $this->id = Uuid::v7();
         $this->context = $context;
         $this->embedding = $embedding;
         $this->model = $model;
         $this->embeddedAt = $embeddedAt;
     }
 
-    public function getId(): ?int
+    public function getId(): Uuid
     {
         return $this->id;
     }

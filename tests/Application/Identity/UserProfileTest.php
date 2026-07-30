@@ -15,7 +15,7 @@ final class UserProfileTest extends ApiTestCase
             ->request('GET', '/api/users/'.$user->getId());
 
         self::assertResponseIsSuccessful();
-        self::assertJsonContains(['id' => $user->getId(), 'email' => 'me@example.com']);
+        self::assertJsonContains(['id' => $user->getId()->toRfc4122(), 'email' => 'me@example.com']);
 
         $data = $response->toArray();
         self::assertArrayNotHasKey('password', $data);

@@ -7,15 +7,16 @@ use App\CatalogSearch\Repository\ProjectProductMatchRepository;
 use App\Project\Entity\ProjectContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: ProjectProductMatchRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_context_product_match', columns: ['context_id', 'product_id'])]
 class ProjectProductMatch
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: UuidType::NAME)]
+    private Uuid $id;
 
     #[ORM\ManyToOne(targetEntity: ProjectContext::class)]
     #[ORM\JoinColumn(name: 'context_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
@@ -41,6 +42,7 @@ class ProjectProductMatch
         string $model,
         \DateTimeImmutable $matchedAt,
     ) {
+        $this->id = Uuid::v7();
         $this->context = $context;
         $this->product = $product;
         $this->matchScore = $matchScore;
@@ -48,7 +50,7 @@ class ProjectProductMatch
         $this->matchedAt = $matchedAt;
     }
 
-    public function getId(): ?int
+    public function getId(): Uuid
     {
         return $this->id;
     }

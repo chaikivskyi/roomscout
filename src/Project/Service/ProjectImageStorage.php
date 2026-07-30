@@ -20,7 +20,7 @@ final class ProjectImageStorage
         $extension = $image->guessExtension()
             ?? throw new \UnexpectedValueException('Could not determine the image extension.');
 
-        $path = sprintf('%s/image.%s', Uuid::v7()->toRfc4122(), $extension);
+        $path = sprintf('%s/image.%s', (string) Uuid::v7(), $extension);
         $stream = fopen($image->getPathname(), 'rb');
 
         try {

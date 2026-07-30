@@ -24,9 +24,7 @@ final class RunScrapeHandler
         $sources = $this->scrapeSourceRepository->findActive();
 
         foreach ($sources as $source) {
-            $sourceId = $source->getId() ?? throw new \LogicException('A persisted ScrapeSource must have an id.');
-
-            $this->messageBus->dispatch(new ScrapeSourceMessage($sourceId));
+            $this->messageBus->dispatch(new ScrapeSourceMessage((string) $source->getId()));
         }
 
         $this->logger->info('Dispatched {count} scrape source job(s).', [

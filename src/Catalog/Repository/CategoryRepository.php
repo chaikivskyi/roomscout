@@ -5,6 +5,7 @@ namespace App\Catalog\Repository;
 use App\Catalog\Entity\Category;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<Category>
@@ -17,11 +18,11 @@ class CategoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<int>
+     * @return list<string>
      */
-    public function findSubtreeIds(int $categoryId): array
+    public function findSubtreeIds(Uuid $categoryId): array
     {
-        /** @var list<int|numeric-string> $ids */
+        /** @var list<string> $ids */
         $ids = $this->getEntityManager()->getConnection()->fetchFirstColumn(<<<'SQL'
             WITH RECURSIVE tree AS (
                 SELECT id FROM category WHERE id = :id
@@ -29,17 +30,13 @@ class CategoryRepository extends ServiceEntityRepository
                 SELECT c.id FROM category c JOIN tree t ON c.parent_category_id = t.id
             )
             SELECT id FROM tree
-            SQL, ['id' => $categoryId]);
+            SQL, ['id' => (string) $categoryId]);
 
-        return array_map(intval(...), $ids);
+        return $ids;
     }
 
     public function getSubtreeHeight(Category $category): int
     {
-        if (null === $category->getId()) {
-            return 1;
-        }
-
         /** @var int|numeric-string|null $height */
         $height = $this->getEntityManager()->getConnection()->fetchOne(<<<'SQL'
             WITH RECURSIVE tree AS (
@@ -48,7 +45,7 @@ class CategoryRepository extends ServiceEntityRepository
                 SELECT c.id, t.depth + 1 FROM category c JOIN tree t ON c.parent_category_id = t.id
             )
             SELECT MAX(depth) FROM tree
-            SQL, ['id' => $category->getId()]);
+            SQL, ['id' => (string) $category->getId()]);
 
         return (int) $height;
     }
