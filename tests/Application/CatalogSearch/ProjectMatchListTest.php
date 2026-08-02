@@ -125,9 +125,9 @@ final class ProjectMatchListTest extends ApiTestCase
         $data = self::decode($client->request('GET', $url.'?category='.$child->getId()));
         self::assertSame([$inChild->getId()->toRfc4122()], array_column($data['member'], 'id'));
 
+        // An unknown category is ignored — the filter falls back to all matches.
         $data = self::decode($client->request('GET', $url.'?category='.Uuid::v7()->toRfc4122()));
-        self::assertSame(0, $data['totalItems']);
-        self::assertSame([], $data['member']);
+        self::assertSame(3, $data['totalItems']);
     }
 
     public function testSortByPricePutsUnpricedProductsLastInBothDirections(): void

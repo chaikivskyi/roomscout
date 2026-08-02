@@ -8,7 +8,7 @@ use App\CatalogSearch\Enum\SortDirection;
 final class ProjectMatchCriteria
 {
     /**
-     * @param list<string>|null $categoryIds
+     * @param non-empty-list<string>|null $categoryIds
      */
     public function __construct(
         public readonly int $page,
@@ -33,10 +33,6 @@ final class ProjectMatchCriteria
 
         if (null !== $priceMin && null !== $priceMax && $priceMin > $priceMax) {
             throw new \InvalidArgumentException('Minimum price must not exceed maximum price.');
-        }
-
-        if ([] === $categoryIds) {
-            throw new \InvalidArgumentException('Category ids must be null or a non-empty list.');
         }
     }
 }

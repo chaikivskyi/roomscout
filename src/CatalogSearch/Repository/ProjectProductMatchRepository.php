@@ -71,6 +71,83 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
         ];
     }
 
+    /**
+     * @return list<array{id: string, title: string, count: int}>
+     */
+    public function countByCategoryForContext(Uuid $contextId, ?int $priceMin, ?int $priceMax): array
+    {
+        $priced = [];
+
+        if (null !== $priceMin) {
+            $priced[] = 'p.price >= :priceMin';
+        }
+
+        if (null !== $priceMax) {
+            $priced[] = 'p.price <= :priceMax';
+        }
+
+        $countExpr = [] === $priced
+            ? 'COUNT(m)'
+            : sprintf('SUM(CASE WHEN %s THEN 1 ELSE 0 END)', implode(' AND ', $priced));
+
+        $qb = $this->createQueryBuilder('m')
+            ->select('c.id AS id', 'c.title AS title', $countExpr.' AS matchCount')
+            ->join('m.product', 'p')
+            ->join('p.category', 'c')
+            ->where('m.context = :context')
+            ->setParameter('context', $contextId, UuidType::NAME)
+            ->groupBy('c.id', 'c.title')
+            ->orderBy('matchCount', 'DESC')
+            ->addOrderBy('c.title', 'ASC')
+            ->addOrderBy('c.id', 'ASC');
+
+        if (null !== $priceMin) {
+            $qb->setParameter('priceMin', $priceMin);
+        }
+
+        if (null !== $priceMax) {
+            $qb->setParameter('priceMax', $priceMax);
+        }
+
+        /** @var list<array{id: Uuid|string, title: string, matchCount: int|numeric-string}> $rows */
+        $rows = $qb->getQuery()->getResult();
+
+        return array_map(static fn (array $row) => [
+            'id' => (string) $row['id'],
+            'title' => $row['title'],
+            'count' => (int) $row['matchCount'],
+        ], $rows);
+    }
+
+    /**
+     * @param list<string>|null $categoryIds
+     *
+     * @return array{min: float, max: float}|null
+     */
+    public function findPriceRangeForContext(Uuid $contextId, ?array $categoryIds): ?array
+    {
+        $qb = $this->createQueryBuilder('m')
+            ->select('MIN(p.price) AS minPrice', 'MAX(p.price) AS maxPrice')
+            ->join('m.product', 'p')
+            ->where('m.context = :context')
+            ->andWhere('p.price IS NOT NULL')
+            ->setParameter('context', $contextId, UuidType::NAME);
+
+        if (null !== $categoryIds) {
+            $qb->andWhere('p.category IN (:categoryIds)')
+                ->setParameter('categoryIds', $categoryIds, ArrayParameterType::STRING);
+        }
+
+        /** @var array{minPrice: float|numeric-string|null, maxPrice: float|numeric-string|null} $row */
+        $row = $qb->getQuery()->getSingleResult();
+
+        if (null === $row['minPrice'] || null === $row['maxPrice']) {
+            return null;
+        }
+
+        return ['min' => (float) $row['minPrice'], 'max' => (float) $row['maxPrice']];
+    }
+
     public function existsForContext(Uuid $contextId): bool
     {
         return 0 < $this->count(['context' => $contextId]);

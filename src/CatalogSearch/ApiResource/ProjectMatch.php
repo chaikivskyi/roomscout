@@ -35,7 +35,7 @@ use Symfony\Component\Validator\Constraints\Type;
             ),
             'category' => new QueryParameter(
                 schema: ['type' => 'string', 'format' => 'uuid'],
-                description: 'Category id (UUID); matches in this category or any of its descendants.',
+                description: 'Category id (UUID); matches in this category or any of its descendants. An unknown category is ignored.',
             ),
             'sort' => new QueryParameter(
                 schema: ['type' => 'string', 'enum' => ['score', 'price'], 'default' => 'score'],

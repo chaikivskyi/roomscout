@@ -10,15 +10,14 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 final class ValidCategoryTreeTest extends ApiTestCase
 {
     /**
-     * A brand-new Category matches no rows in the subtree-height CTE. Its height is still
-     * 1, and reporting 0 would let the tree grow one level past Category::MAX_DEPTH.
+     * The subtree-height CTE only sees persisted rows, so the depth limit is
+     * enforced against database state — an unflushed category has height 0.
      */
-    public function testNewCategoryUnderTheDeepestAllowedParentIsRejected(): void
+    public function testCategoryMovedUnderTheDeepestAllowedParentIsRejected(): void
     {
         $deepest = $this->chain(Category::MAX_DEPTH);
 
-        $tooDeep = new Category();
-        $tooDeep->setTitle('One level too deep');
+        $tooDeep = CategoryFactory::createOne(['title' => 'One level too deep']);
         $tooDeep->setParent($deepest);
 
         $violations = $this->validator()->validate($tooDeep);
@@ -30,12 +29,11 @@ final class ValidCategoryTreeTest extends ApiTestCase
         self::assertSame('Categories cannot be nested more than 4 levels deep.', (string) $violation->getMessage());
     }
 
-    public function testNewCategoryOneLevelHigherIsAccepted(): void
+    public function testCategoryOneLevelHigherIsAccepted(): void
     {
         $parent = $this->chain(Category::MAX_DEPTH - 1);
 
-        $child = new Category();
-        $child->setTitle('Still within the limit');
+        $child = CategoryFactory::createOne(['title' => 'Still within the limit']);
         $child->setParent($parent);
 
         self::assertCount(0, $this->validator()->validate($child));
