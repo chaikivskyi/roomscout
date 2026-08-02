@@ -9,7 +9,7 @@ final class LoginTest extends ApiTestCase
 {
     public function testLoginWithValidCredentialsReturnsUsableToken(): void
     {
-        $user = UserFactory::createOne(['email' => 'login@example.com']);
+        UserFactory::createOne(['email' => 'login@example.com']);
 
         $response = static::createClient()->request('POST', '/api/login', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -21,7 +21,7 @@ final class LoginTest extends ApiTestCase
         self::assertIsString($token);
         self::assertNotEmpty($token);
 
-        $this->authClient($token)->request('GET', '/api/users/'.$user->getId());
+        $this->authClient($token)->request('GET', '/api/me');
         self::assertResponseIsSuccessful();
     }
 

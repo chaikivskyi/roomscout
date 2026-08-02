@@ -33,7 +33,7 @@ final class SignupTest extends ApiTestCase
         self::assertNotNull($user);
         self::assertNotSame('Password123', $user->getPassword());
 
-        $this->authClient($data['token'])->request('GET', '/api/users/'.$data['id']);
+        $this->authClient($data['token'])->request('GET', '/api/me');
         self::assertResponseIsSuccessful();
     }
 

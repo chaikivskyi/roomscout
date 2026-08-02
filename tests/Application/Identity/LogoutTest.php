@@ -13,13 +13,13 @@ final class LogoutTest extends ApiTestCase
         $token = $this->tokenFor($user);
         $client = $this->authClient($token);
 
-        $client->request('GET', '/api/users/'.$user->getId());
+        $client->request('GET', '/api/me');
         self::assertResponseIsSuccessful();
 
         $client->request('POST', '/api/logout');
         self::assertResponseStatusCodeSame(204);
 
-        $client->request('GET', '/api/users/'.$user->getId());
+        $client->request('GET', '/api/me');
         self::assertResponseStatusCodeSame(401);
     }
 

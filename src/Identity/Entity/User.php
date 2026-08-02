@@ -10,6 +10,7 @@ use App\Identity\ApiResource\SignupInput;
 use App\Identity\ApiResource\SignupOutput;
 use App\Identity\Enum\Role;
 use App\Identity\Repository\UserRepository;
+use App\Identity\State\CurrentUserProvider;
 use App\Identity\State\SignupProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Scheb\TwoFactorBundle\Model\Totp\TotpConfiguration;
@@ -28,13 +29,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(
-            uriTemplate: '/users/{id}',
+            uriTemplate: '/me',
             openapi: new Operation(
                 tags: ['Identity / Users'],
-                summary: 'Get a user profile',
-                description: 'Users can only read their own profile.',
+                summary: 'Get the current user profile',
+                description: 'Returns the profile of the authenticated user.',
             ),
-            security: "is_granted('ROLE_USER') and object == user",
+            security: "is_granted('ROLE_USER')",
+            provider: CurrentUserProvider::class,
         ),
         new Post(
             uriTemplate: '/signup',
