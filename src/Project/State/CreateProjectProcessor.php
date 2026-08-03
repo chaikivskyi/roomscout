@@ -9,6 +9,7 @@ use App\Project\ApiResource\ProjectOutput;
 use App\Project\ApiResource\ProjectRequest;
 use App\Project\Entity\Project;
 use App\Project\Entity\ProjectContext;
+use App\Project\Entity\ProjectImageVersion;
 use App\Project\Service\ProjectImageStorage;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -40,9 +41,11 @@ final class CreateProjectProcessor implements ProcessorInterface
         $imagePath = $this->imageStorage->store($image);
 
         try {
-            $project = new Project($user, $imagePath);
+            $project = new Project($user);
+            $version = new ProjectImageVersion($project, $imagePath);
             $projectContext = new ProjectContext($project, $data->prompt);
             $this->entityManager->persist($project);
+            $this->entityManager->persist($version);
             $this->entityManager->persist($projectContext);
             $this->entityManager->flush();
         } catch (\Throwable $e) {

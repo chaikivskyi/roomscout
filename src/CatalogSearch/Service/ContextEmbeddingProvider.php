@@ -5,6 +5,7 @@ namespace App\CatalogSearch\Service;
 use App\CatalogSearch\Entity\ProjectContextEmbedding;
 use App\CatalogSearch\Repository\ProjectContextEmbeddingRepository;
 use App\Project\Entity\ProjectContext;
+use App\Project\Repository\ProjectImageVersionRepository;
 use App\Project\Service\ProjectImageStorage;
 use Pgvector\Vector;
 use Psr\Log\LoggerInterface;
@@ -15,6 +16,7 @@ final class ContextEmbeddingProvider
         private readonly ProjectContextEmbeddingRepository $embeddings,
         private readonly ImageEmbedderInterface $embedder,
         private readonly ProjectImageStorage $projectImages,
+        private readonly ProjectImageVersionRepository $imageVersions,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -27,7 +29,17 @@ final class ContextEmbeddingProvider
             return $existing;
         }
 
-        $path = $context->getProject()->getImagePath();
+        $version = $this->imageVersions->findLatestForProject($context->getProject()->getId());
+
+        if (null === $version) {
+            $this->logger->warning('Cannot embed context: project has no image version.', [
+                'contextId' => (string) $context->getId(),
+            ]);
+
+            return null;
+        }
+
+        $path = $version->getImagePath();
 
         if (!$this->projectImages->exists($path)) {
             $this->logger->warning('Cannot embed context: project image is missing from storage.', [

@@ -26,8 +26,6 @@ class Project
         #[ORM\ManyToOne(targetEntity: User::class)]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
         private readonly User $user,
-        #[ORM\Column(length: 255)]
-        private readonly string $imagePath,
     ) {
         $this->id = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
@@ -42,11 +40,6 @@ class Project
     public function getUser(): User
     {
         return $this->user;
-    }
-
-    public function getImagePath(): string
-    {
-        return $this->imagePath;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

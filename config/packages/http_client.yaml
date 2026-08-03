@@ -4,3 +4,7 @@ framework:
             cohere.client:
                 base_uri: 'https://api.cohere.com'
                 auth_bearer: '%env(COHERE_API_KEY)%'
+            gemini.client:
+                base_uri: 'https://generativelanguage.googleapis.com'
+                headers:
+                    x-goog-api-key: '%env(GEMINI_API_KEY)%'

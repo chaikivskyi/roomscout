@@ -17,6 +17,14 @@ framework:
                     max_retries: 5
                     delay: 30000
                     multiplier: 2
+            async_placements:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: placements
+                retry_strategy:
+                    max_retries: 3
+                    delay: 30000
+                    multiplier: 2
             failed: 'doctrine://default?queue_name=failed'
             # sync: 'sync://'
 
@@ -39,4 +47,5 @@ when@test:
             transports:
                 async: 'in-memory://'
                 async_embeddings: 'in-memory://'
+                async_placements: 'in-memory://'
                 failed: 'in-memory://'

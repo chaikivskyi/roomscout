@@ -9,6 +9,12 @@ use Symfony\Component\Uid\Uuid;
 
 final class ProjectImageStorage
 {
+    private const EXTENSIONS = [
+        'image/png' => 'png',
+        'image/jpeg' => 'jpg',
+        'image/webp' => 'webp',
+    ];
+
     public function __construct(
         #[Autowire(service: 'project.storage')]
         private readonly FilesystemOperator $storage,
@@ -32,6 +38,27 @@ final class ProjectImageStorage
         }
 
         return $path;
+    }
+
+    public function storeBytes(string $mimeType, string $bytes): string
+    {
+        $path = sprintf('%s/image.%s', (string) Uuid::v7(), $this->extensionFor($mimeType));
+        $this->storage->write($path, $bytes);
+
+        return $path;
+    }
+
+    private function extensionFor(string $mimeType): string
+    {
+        if (isset(self::EXTENSIONS[$mimeType])) {
+            return self::EXTENSIONS[$mimeType];
+        }
+
+        if (1 === preg_match('#^image/([a-z0-9]+)$#', $mimeType, $matches)) {
+            return $matches[1];
+        }
+
+        throw new \UnexpectedValueException(sprintf('Unsupported image mime type "%s".', $mimeType));
     }
 
     public function remove(string $path): void

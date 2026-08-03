@@ -150,7 +150,18 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
 
     public function existsForContext(Uuid $contextId): bool
     {
-        return 0 < $this->count(['context' => $contextId]);
+        return (bool) $this->getEntityManager()->getConnection()->fetchOne(
+            'SELECT EXISTS(SELECT 1 FROM project_product_match WHERE context_id = :contextId)',
+            ['contextId' => (string) $contextId],
+        );
+    }
+
+    public function existsForContextAndProduct(Uuid $contextId, Uuid $productId): bool
+    {
+        return (bool) $this->getEntityManager()->getConnection()->fetchOne(
+            'SELECT EXISTS(SELECT 1 FROM project_product_match WHERE context_id = :contextId AND product_id = :productId)',
+            ['contextId' => $contextId->toRfc4122(), 'productId' => (string) $productId],
+        );
     }
 
     public function insertMatchesWithinCosineDistance(

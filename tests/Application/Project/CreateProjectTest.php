@@ -4,6 +4,7 @@ namespace App\Tests\Application\Project;
 
 use App\Project\Entity\ProjectContext;
 use App\Project\Enum\ProjectContextStatus;
+use App\Project\Repository\ProjectImageVersionRepository;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use League\Flysystem\FilesystemOperator;
@@ -58,11 +59,16 @@ final class CreateProjectTest extends ApiTestCase
         $project = $context->getProject();
         self::assertSame($data['id'], $project->getId()->toRfc4122());
         self::assertTrue($user->getId()->equals($project->getUser()->getId()));
-        self::assertStringEndsWith('/image.png', $project->getImagePath());
         self::assertSame(1, $contexts->count(['project' => $project->getId()]));
 
-        self::assertTrue($this->storage()->fileExists($project->getImagePath()));
-        self::assertSame(base64_decode(self::PNG_1X1), $this->storage()->read($project->getImagePath()));
+        $versionRepository = static::getContainer()->get(ProjectImageVersionRepository::class);
+        self::assertSame(1, $versionRepository->count(['project' => $project->getId()]));
+        $version = $versionRepository->findLatestForProject($project->getId());
+        self::assertNotNull($version);
+        self::assertStringEndsWith('/image.png', $version->getImagePath());
+
+        self::assertTrue($this->storage()->fileExists($version->getImagePath()));
+        self::assertSame(base64_decode(self::PNG_1X1), $this->storage()->read($version->getImagePath()));
     }
 
     public function testRequiresAuthentication(): void

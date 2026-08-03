@@ -23,6 +23,10 @@ deptrac:
       collectors:
         - type: directory
           value: src/Identity/.*
+    - name: Placement
+      collectors:
+        - type: directory
+          value: src/Placement/.*
     - name: Project
       collectors:
         - type: directory
@@ -46,6 +50,11 @@ deptrac:
       - Project
     Identity:
       - Api
+    Placement:
+      - Api
+      - Catalog
+      - CatalogSearch
+      - Project
     Project:
       - Api
       - Identity
