@@ -9,4 +9,6 @@ interface ProductRepositoryInterface
     public function findOneByExternalId(string $externalId): ?ProductInterface;
 
     public function save(ProductInterface $product): void;
+
+    public function discardChanges(ProductInterface $product): void;
 }

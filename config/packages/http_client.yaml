@@ -8,3 +8,8 @@ framework:
                 base_uri: 'https://generativelanguage.googleapis.com'
                 headers:
                     x-goog-api-key: '%env(GEMINI_API_KEY)%'
+            scraper.client:
+                scope: '.*'
+                timeout: 10
+                max_duration: 30
+                max_redirects: 5

@@ -16,6 +16,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
  */
 class ProductCrudController extends AbstractCrudController
 {
+    use CategoryIndexJoinTrait;
+
     public static function getEntityFqcn(): string
     {
         return Product::class;

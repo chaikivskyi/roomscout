@@ -19,7 +19,10 @@ class ProductEmbeddingRepository extends ServiceEntityRepository
 
     public function existsForProduct(Uuid $productId): bool
     {
-        return 0 < $this->count(['product' => $productId]);
+        return (bool) $this->getEntityManager()->getConnection()->fetchOne(
+            'SELECT EXISTS(SELECT 1 FROM product_embedding WHERE product_id = :productId)',
+            ['productId' => $productId->toRfc4122()],
+        );
     }
 
     public function save(ProductEmbedding $embedding): void

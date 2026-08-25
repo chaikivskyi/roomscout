@@ -33,4 +33,19 @@ class ProductRepository extends ServiceEntityRepository implements ProductReposi
         $this->getEntityManager()->persist($product);
         $this->getEntityManager()->flush();
     }
+
+    public function discardChanges(ProductInterface $product): void
+    {
+        $em = $this->getEntityManager();
+
+        if (!$em->contains($product)) {
+            return;
+        }
+
+        try {
+            $em->refresh($product);
+        } catch (\Throwable) {
+            $em->detach($product);
+        }
+    }
 }

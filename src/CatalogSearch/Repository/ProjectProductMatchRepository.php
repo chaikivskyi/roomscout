@@ -31,9 +31,8 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
         $order = $criteria->direction->toOrderKeyword();
 
         $qb = $this->createQueryBuilder('m')
-            ->addSelect('p', 'c')
+            ->addSelect('p')
             ->join('m.product', 'p')
-            ->join('p.category', 'c')
             ->where('m.context = :context')
             ->setParameter('context', $contextId, UuidType::NAME);
 
@@ -172,14 +171,29 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
         string $model,
         \DateTimeImmutable $matchedAt,
     ): int {
-        return (int) $this->getEntityManager()->getConnection()->executeStatement(
+        $connection = $this->getEntityManager()->getConnection();
+
+        if (!$connection->isTransactionActive()) {
+            throw new \LogicException('insertMatchesWithinCosineDistance() requires an active transaction: SET LOCAL hnsw.ef_search is a silent no-op outside one.');
+        }
+
+        if ($limit < 1 || $limit > 1000) {
+            throw new \InvalidArgumentException(sprintf('$limit must be within 1..1000 (pgvector hnsw.ef_search range), got %d.', $limit));
+        }
+
+        $connection->executeStatement(sprintf('SET LOCAL hnsw.ef_search = %d', $limit));
+
+        return (int) $connection->executeStatement(
             <<<'SQL'
                 INSERT INTO project_product_match (id, context_id, product_id, match_score, model, matched_at)
-                SELECT uuidv7(), :contextId, e.product_id, 1 - (e.embedding <=> :query), :model, :matchedAt
-                FROM product_embedding e
-                WHERE (e.embedding <=> :query) <= :maxDistance
-                ORDER BY e.embedding <=> :query
-                LIMIT :limit
+                SELECT uuidv7(), :contextId, t.product_id, 1 - t.distance, :model, :matchedAt
+                FROM (
+                    SELECT e.product_id, e.embedding <=> :query AS distance
+                    FROM product_embedding e
+                    ORDER BY e.embedding <=> :query
+                    LIMIT :limit
+                ) t
+                WHERE t.distance <= :maxDistance
                 SQL,
             [
                 'contextId' => (string) $contextId,

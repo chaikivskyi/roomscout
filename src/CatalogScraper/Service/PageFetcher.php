@@ -7,17 +7,20 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class PageFetcher
 {
+    private const MAX_BYTES = 5 * 1024 * 1024;
+
     public function __construct(
-        private readonly HttpClientInterface $httpClient,
+        private readonly HttpClientInterface $scraperClient,
+        private readonly CappedResponseReader $responseReader,
     ) {
     }
 
     public function fetch(string $url): Crawler
     {
-        $response = $this->httpClient->request('GET', $url);
+        $response = $this->scraperClient->request('GET', $url, ['buffer' => false]);
 
-        $html = $response->getContent();
+        $response->getHeaders();
 
-        return new Crawler($html, $url);
+        return new Crawler($this->responseReader->read($response, self::MAX_BYTES), $url);
     }
 }

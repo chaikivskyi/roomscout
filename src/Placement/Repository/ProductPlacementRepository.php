@@ -26,6 +26,12 @@ class ProductPlacementRepository extends ServiceEntityRepository
 
     public function hasActiveForProject(Uuid $projectId): bool
     {
-        return 0 < $this->count(['project' => $projectId, 'status' => PlacementStatus::Processing]);
+        return (bool) $this->getEntityManager()->getConnection()->fetchOne(
+            'SELECT EXISTS(SELECT 1 FROM product_placement WHERE project_id = :projectId AND status = :status)',
+            [
+                'projectId' => $projectId->toRfc4122(),
+                'status' => PlacementStatus::Processing->value,
+            ],
+        );
     }
 }

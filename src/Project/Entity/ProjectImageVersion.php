@@ -8,6 +8,7 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: ProjectImageVersionRepository::class)]
+#[ORM\Index(name: 'idx_project_image_version_project_id_id', columns: ['project_id', 'id'])]
 class ProjectImageVersion
 {
     #[ORM\Id]

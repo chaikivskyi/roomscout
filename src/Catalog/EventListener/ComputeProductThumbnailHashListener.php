@@ -5,8 +5,10 @@ namespace App\Catalog\EventListener;
 use App\Catalog\Entity\Product;
 use App\Catalog\Service\ProductThumbnailHasher;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
+use Doctrine\ORM\UnitOfWork;
 
 #[AsDoctrineListener(event: Events::onFlush)]
 final class ComputeProductThumbnailHashListener
@@ -21,19 +23,42 @@ final class ComputeProductThumbnailHashListener
         $em = $args->getObjectManager();
         $uow = $em->getUnitOfWork();
 
-        foreach ([...$uow->getScheduledEntityInsertions(), ...$uow->getScheduledEntityUpdates()] as $entity) {
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if (!$entity instanceof Product || null !== $entity->getThumbnailHash()) {
+                continue;
+            }
+
+            $this->refreshHash($em, $uow, $entity);
+        }
+
+        foreach ($uow->getScheduledEntityUpdates() as $entity) {
             if (!$entity instanceof Product) {
                 continue;
             }
 
-            $hash = $this->hasher->hashFor($entity->getThumbnailUrl());
+            $changeSet = $uow->getEntityChangeSet($entity);
 
-            if ($hash === $entity->getThumbnailHash()) {
+            if (isset($changeSet['thumbnailHash'])) {
                 continue;
             }
 
-            $entity->setThumbnailHash($hash);
-            $uow->recomputeSingleEntityChangeSet($em->getClassMetadata(Product::class), $entity);
+            if (!isset($changeSet['thumbnailUrl']) && null !== $entity->getThumbnailHash()) {
+                continue;
+            }
+
+            $this->refreshHash($em, $uow, $entity);
         }
+    }
+
+    private function refreshHash(EntityManagerInterface $em, UnitOfWork $uow, Product $entity): void
+    {
+        $hash = $this->hasher->hashFor($entity->getThumbnailUrl());
+
+        if ($hash === $entity->getThumbnailHash()) {
+            return;
+        }
+
+        $entity->setThumbnailHash($hash);
+        $uow->recomputeSingleEntityChangeSet($em->getClassMetadata(Product::class), $entity);
     }
 }

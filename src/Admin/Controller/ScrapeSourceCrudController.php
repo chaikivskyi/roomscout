@@ -16,6 +16,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
  */
 class ScrapeSourceCrudController extends AbstractCrudController
 {
+    use CategoryIndexJoinTrait;
+
     public static function getEntityFqcn(): string
     {
         return ScrapeSource::class;

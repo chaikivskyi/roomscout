@@ -2,6 +2,7 @@
 
 namespace App\CatalogScraper\Service;
 
+use App\Catalog\Api\ProductInterface;
 use App\Catalog\Api\ProductRepositoryInterface;
 use App\CatalogScraper\Entity\ScrapeSource;
 use Psr\Log\LoggerInterface;
@@ -33,6 +34,8 @@ class ScraperService
         $skipped = 0;
 
         foreach ($this->productUrlCollector->collect($source) as $productUrl) {
+            $managed = null;
+
             try {
                 $page = $this->pageFetcher->fetch($productUrl);
 
@@ -50,23 +53,11 @@ class ScraperService
                 }
 
                 $existing = $this->products->findOneByExternalId($externalId);
+                $managed = $existing;
                 $isNew = null === $existing;
                 $product = $existing ?? $scraped;
-                $remoteThumbnail = $scraped->getThumbnailUrl();
-                $storedThumbnail = null !== $remoteThumbnail
-                    ? $this->thumbnailDownloader->store($remoteThumbnail, (string) $product->getId())
-                    : null;
 
                 if ($isNew) {
-                    if (null === $storedThumbnail) {
-                        ++$skipped;
-                        $this->logger->warning('Skipping product {url}: thumbnail could not be stored.', [
-                            'url' => $productUrl,
-                        ]);
-                        continue;
-                    }
-
-                    $product->setThumbnailUrl($storedThumbnail);
                     $product->setUrl($productUrl);
                     $product->setCategory($category);
                 } else {
@@ -74,19 +65,31 @@ class ScraperService
                         $product->setPrice($scraped->getPrice());
                     }
 
-                    if (null !== $storedThumbnail) {
-                        $product->setThumbnailUrl($storedThumbnail);
+                    if (!$this->isValid($product, $productUrl)) {
+                        ++$skipped;
+                        $this->products->discardChanges($product);
+                        continue;
                     }
                 }
 
-                $errors = $this->validator->validate($product);
+                $remoteThumbnail = $scraped->getThumbnailUrl();
+                $storedThumbnail = null !== $remoteThumbnail
+                    ? $this->thumbnailDownloader->store($remoteThumbnail, (string) $product->getId())
+                    : null;
 
-                if (count($errors) > 0) {
+                if (null !== $storedThumbnail) {
+                    $product->setThumbnailUrl($storedThumbnail->path);
+                    $product->setThumbnailHash($storedThumbnail->hash);
+                } elseif ($isNew) {
                     ++$skipped;
-                    $this->logger->warning('Skipping invalid product {url}: {errors}', [
+                    $this->logger->warning('Skipping product {url}: thumbnail could not be stored.', [
                         'url' => $productUrl,
-                        'errors' => (string) $errors,
                     ]);
+                    continue;
+                }
+
+                if ($isNew && !$this->isValid($product, $productUrl)) {
+                    ++$skipped;
                     continue;
                 }
 
@@ -95,6 +98,11 @@ class ScraperService
                 $isNew ? ++$created : ++$updated;
             } catch (\Throwable $e) {
                 ++$skipped;
+
+                if (null !== $managed) {
+                    $this->products->discardChanges($managed);
+                }
+
                 $this->logger->error('Failed to scrape product {url}: {message}', [
                     'url' => $productUrl,
                     'message' => $e->getMessage(),
@@ -108,5 +116,21 @@ class ScraperService
             'updated' => $updated,
             'skipped' => $skipped,
         ]);
+    }
+
+    private function isValid(ProductInterface $product, string $productUrl): bool
+    {
+        $errors = $this->validator->validate($product);
+
+        if (0 === count($errors)) {
+            return true;
+        }
+
+        $this->logger->warning('Skipping invalid product {url}: {errors}', [
+            'url' => $productUrl,
+            'errors' => (string) $errors,
+        ]);
+
+        return false;
     }
 }

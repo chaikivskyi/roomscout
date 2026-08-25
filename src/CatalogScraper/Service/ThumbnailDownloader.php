@@ -2,6 +2,9 @@
 
 namespace App\CatalogScraper\Service;
 
+use App\Catalog\Service\ProductThumbnailHasher;
+use App\CatalogScraper\Dto\StoredThumbnail;
+use App\CatalogScraper\Exception\ResponseTooLargeException;
 use League\Flysystem\FilesystemOperator;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -15,11 +18,10 @@ class ThumbnailDownloader
 
     private const MAX_BYTES = 10 * 1024 * 1024;
 
-    private const REQUEST_TIMEOUT = 10;
-    private const MAX_DURATION = 30;
-
     public function __construct(
-        private readonly HttpClientInterface $httpClient,
+        private readonly HttpClientInterface $scraperClient,
+        private readonly CappedResponseReader $responseReader,
+        private readonly ProductThumbnailHasher $hasher,
         #[Autowire(service: 'product_thumbnails.storage')]
         private readonly FilesystemOperator $storage,
         private readonly MimeTypesInterface $mimeTypes,
@@ -27,7 +29,7 @@ class ThumbnailDownloader
     ) {
     }
 
-    public function store(string $sourceUrl, string $identifier): ?string
+    public function store(string $sourceUrl, string $identifier): ?StoredThumbnail
     {
         try {
             $response = $this->fetch($sourceUrl);
@@ -48,9 +50,9 @@ class ThumbnailDownloader
                 return null;
             }
 
-            $content = $this->download($response);
-
-            if (null === $content) {
+            try {
+                $content = $this->responseReader->read($response, self::MAX_BYTES);
+            } catch (ResponseTooLargeException) {
                 $this->logger->warning('Thumbnail {url} exceeds the maximum size.', ['url' => $sourceUrl]);
 
                 return null;
@@ -69,10 +71,7 @@ class ThumbnailDownloader
 
     private function fetch(string $sourceUrl): ?ResponseInterface
     {
-        $response = $this->httpClient->request('GET', $sourceUrl, [
-            'timeout' => self::REQUEST_TIMEOUT,
-            'max_duration' => self::MAX_DURATION,
-        ]);
+        $response = $this->scraperClient->request('GET', $sourceUrl, ['buffer' => false]);
 
         if (200 !== $response->getStatusCode()) {
             $this->logger->warning('Thumbnail {url} returned HTTP {status}.', [
@@ -86,36 +85,13 @@ class ThumbnailDownloader
         return $response;
     }
 
-    private function download(ResponseInterface $response): ?string
-    {
-        if ((int) ($response->getHeaders(false)['content-length'][0] ?? 0) > self::MAX_BYTES) {
-            $response->cancel();
-
-            return null;
-        }
-
-        $content = '';
-
-        foreach ($this->httpClient->stream($response) as $chunk) {
-            $content .= $chunk->getContent();
-
-            if (strlen($content) > self::MAX_BYTES) {
-                $response->cancel();
-
-                return null;
-            }
-        }
-
-        return $content;
-    }
-
-    private function persist(string $identifier, string $extension, string $content): string
+    private function persist(string $identifier, string $extension, string $content): StoredThumbnail
     {
         $path = sprintf('%s/thumbnail.%s', $identifier, $extension);
 
         $this->storage->write($path, $content);
 
-        return $path;
+        return new StoredThumbnail($path, $this->hasher->hashBytes($content));
     }
 
     private function normalizeContentType(string $header): string

@@ -19,6 +19,11 @@ final class ProductThumbnailHasher
             return null;
         }
 
-        return hash('sha256', $this->storage->read($path));
+        return $this->hashBytes($this->storage->read($path));
+    }
+
+    public function hashBytes(string $bytes): string
+    {
+        return hash('sha256', $bytes);
     }
 }
