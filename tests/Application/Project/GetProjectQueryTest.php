@@ -3,7 +3,6 @@
 namespace App\Tests\Application\Project;
 
 use App\Api\Bus\QueryBusInterface;
-use App\Project\Enum\ProjectContextStatus;
 use App\Project\Exception\ProjectNotFound;
 use App\Project\Query\GetProject;
 use App\Tests\Application\ApiTestCase;
@@ -14,7 +13,7 @@ use Symfony\Component\Uid\Uuid;
 
 final class GetProjectQueryTest extends ApiTestCase
 {
-    public function testReturnsTheInitialContextsPromptAndStatus(): void
+    public function testReturnsTheProjectsOwnFieldsOnly(): void
     {
         $user = UserFactory::createOne();
         $project = ProjectFactory::createOne(['user' => $user]);
@@ -24,8 +23,7 @@ final class GetProjectQueryTest extends ApiTestCase
         $output = $this->queryBus()->ask(new GetProject($project->getId(), $user->getId()));
 
         self::assertSame($project->getId()->toRfc4122(), $output->id);
-        self::assertSame('a walnut coffee table', $output->prompt);
-        self::assertSame(ProjectContextStatus::Completed->value, $output->status);
+        self::assertEquals($project->getCreatedAt(), $output->createdAt);
     }
 
     public function testProjectWhoseContextsWereAllDeletedStillReads(): void
@@ -36,8 +34,6 @@ final class GetProjectQueryTest extends ApiTestCase
         $output = $this->queryBus()->ask(new GetProject($project->getId(), $user->getId()));
 
         self::assertSame($project->getId()->toRfc4122(), $output->id);
-        self::assertNull($output->prompt);
-        self::assertNull($output->status);
     }
 
     public function testUnknownProjectStillThrowsProjectNotFound(): void

@@ -15,6 +15,7 @@ api_platform:
 
         App\CatalogSearch\Exception\ContextStillProcessing: 202
 
+        App\Api\Exception\UnauthorizedException: 401
         App\Api\Exception\NotFoundException: 404
         App\Api\Exception\AccessDeniedException: 403
         App\Api\Exception\ConflictException: 409

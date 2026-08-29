@@ -32,6 +32,24 @@ final class CreateProjectTest extends ApiTestCase
         parent::tearDown();
     }
 
+    public function testTokenOfADeletedUserIsRejectedWith401(): void
+    {
+        $user = UserFactory::createOne();
+        $token = $this->tokenFor($user);
+        $this->entityManager()->remove($user);
+        $this->entityManager()->flush();
+
+        $this->authClient($token)->request('POST', '/api/projects', [
+            'headers' => ['Content-Type' => 'multipart/form-data'],
+            'extra' => [
+                'parameters' => ['prompt' => 'find a similar lamp'],
+                'files' => ['image' => $this->pngUpload()],
+            ],
+        ]);
+
+        self::assertResponseStatusCodeSame(401);
+    }
+
     public function testCreatesProjectFromImageAndPrompt(): void
     {
         $user = UserFactory::createOne();
@@ -45,16 +63,22 @@ final class CreateProjectTest extends ApiTestCase
         ]);
 
         self::assertResponseStatusCodeSame(201);
-        self::assertJsonContains(['prompt' => 'find a similar lamp', 'status' => 'processing']);
+        self::assertJsonContains(['context' => ['prompt' => 'find a similar lamp', 'status' => 'processing']]);
 
         $data = $response->toArray();
+        $contextData = $data['context'];
+        self::assertIsArray($contextData);
         self::assertNotEmpty($data['id']);
         self::assertNotEmpty($data['createdAt']);
+        self::assertNotEmpty($contextData['id']);
+        self::assertNotEmpty($contextData['createdAt']);
+        self::assertArrayNotHasKey('prompt', $data, 'The project must not carry its context\'s fields.');
 
         $contexts = $this->entityManager()->getRepository(ProjectContext::class);
         $context = $contexts->findOneBy(['prompt' => 'find a similar lamp']);
         self::assertNotNull($context);
         self::assertSame(ProjectContextStatus::Processing, $context->getStatus());
+        self::assertSame($contextData['id'], $context->getId()->toRfc4122());
 
         $project = $context->getProject();
         self::assertSame($data['id'], $project->getId()->toRfc4122());

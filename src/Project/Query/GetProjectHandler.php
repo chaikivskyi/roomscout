@@ -2,8 +2,7 @@
 
 namespace App\Project\Query;
 
-use App\Project\ApiResource\ProjectOutput;
-use App\Project\Repository\ProjectContextRepository;
+use App\Project\ApiResource\ProjectSummaryOutput;
 use App\Project\Service\OwnedProjectResolver;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -12,20 +11,15 @@ final class GetProjectHandler
 {
     public function __construct(
         private readonly OwnedProjectResolver $projectResolver,
-        private readonly ProjectContextRepository $contexts,
     ) {
     }
 
-    public function __invoke(GetProject $query): ProjectOutput
+    public function __invoke(GetProject $query): ProjectSummaryOutput
     {
         $project = $this->projectResolver->resolve($query->projectId, $query->actorId);
 
-        $context = $this->contexts->findInitialForProject($project->getId());
-
-        return new ProjectOutput(
+        return new ProjectSummaryOutput(
             (string) $project->getId(),
-            $context?->getPrompt(),
-            $context?->getStatus()->value,
             $project->getCreatedAt(),
         );
     }

@@ -2,7 +2,7 @@
 
 namespace App\CatalogScraper\Service;
 
-use App\Catalog\Api\ProductInterface;
+use App\Catalog\Entity\Product;
 use App\CatalogScraper\Enum\ProductField;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\UriResolver;
@@ -17,7 +17,7 @@ class ProductMapper
     /**
      * @param list<array{field: string, selector: string, attribute: ?string}> $mappings
      */
-    public function mapInto(ProductInterface $product, Crawler $page, array $mappings): void
+    public function mapInto(Product $product, Crawler $page, array $mappings): void
     {
         foreach ($mappings as $mapping) {
             $field = ProductField::tryFrom($mapping['field']);
@@ -61,7 +61,7 @@ class ProductMapper
             : $node->text('');
     }
 
-    private function assign(ProductInterface $product, ProductField $field, string|float $value): void
+    private function assign(Product $product, ProductField $field, string|float $value): void
     {
         match ($field) {
             ProductField::Title => $product->setTitle((string) $value),

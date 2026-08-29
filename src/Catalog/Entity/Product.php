@@ -2,7 +2,6 @@
 
 namespace App\Catalog\Entity;
 
-use App\Catalog\Api\ProductInterface;
 use App\Catalog\Repository\ProductRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -12,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_product_external_id', columns: ['external_id'])]
-class Product implements ProductInterface
+class Product
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]

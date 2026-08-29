@@ -2,6 +2,7 @@
 
 namespace App\Placement\Entity;
 
+use App\Api\Messenger\FailableInterface;
 use App\Catalog\Entity\Product;
 use App\Placement\Enum\PlacementStatus;
 use App\Placement\Repository\ProductPlacementRepository;
@@ -20,7 +21,7 @@ use Symfony\Component\Uid\Uuid;
     columns: ['project_id'],
     options: ['where' => "((status)::text = 'processing'::text)"],
 )]
-class ProductPlacement
+class ProductPlacement implements FailableInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]

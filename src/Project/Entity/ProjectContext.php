@@ -2,6 +2,7 @@
 
 namespace App\Project\Entity;
 
+use App\Api\Messenger\FailableInterface;
 use App\Project\Enum\ProjectContextStatus;
 use App\Project\Repository\ProjectContextRepository;
 use Doctrine\DBAL\Types\Types;
@@ -11,7 +12,7 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: ProjectContextRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class ProjectContext
+class ProjectContext implements FailableInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]

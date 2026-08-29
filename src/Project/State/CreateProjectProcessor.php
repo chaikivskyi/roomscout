@@ -11,6 +11,7 @@ use App\Project\ApiResource\ProjectOutput;
 use App\Project\ApiResource\ProjectRequest;
 use App\Project\Command\CreateProject;
 use App\Project\Query\GetProject;
+use App\Project\Query\GetProjectContext;
 use App\Project\Service\ProjectImageStorage;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -35,11 +36,12 @@ final class CreateProjectProcessor implements ProcessorInterface
 
         $imagePath = $this->imageStorage->store($image);
         $projectId = Uuid::v7();
+        $contextId = Uuid::v7();
 
         try {
             $this->commandBus->dispatch(new CreateProject(
                 projectId: $projectId,
-                contextId: Uuid::v7(),
+                contextId: $contextId,
                 versionId: Uuid::v7(),
                 ownerId: $ownerId,
                 imagePath: $imagePath,
@@ -51,6 +53,12 @@ final class CreateProjectProcessor implements ProcessorInterface
             throw $e;
         }
 
-        return $this->queryBus->ask(new GetProject($projectId, $ownerId));
+        $project = $this->queryBus->ask(new GetProject($projectId, $ownerId));
+
+        return new ProjectOutput(
+            $project->id,
+            $project->createdAt,
+            $this->queryBus->ask(new GetProjectContext($projectId, $contextId, $ownerId)),
+        );
     }
 }

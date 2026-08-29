@@ -2,8 +2,8 @@
 
 namespace App\CatalogScraper\Service;
 
-use App\Catalog\Api\ProductInterface;
-use App\Catalog\Api\ProductRepositoryInterface;
+use App\Catalog\Entity\Product;
+use App\Catalog\Repository\ProductRepository;
 use App\CatalogScraper\Entity\ScrapeSource;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class ScraperService
 {
     public function __construct(
-        private readonly ProductRepositoryInterface $products,
+        private readonly ProductRepository $products,
         private readonly ProductUrlCollector $productUrlCollector,
         private readonly PageFetcher $pageFetcher,
         private readonly ProductMapper $productMapper,
@@ -39,7 +39,7 @@ class ScraperService
             try {
                 $page = $this->pageFetcher->fetch($productUrl);
 
-                $scraped = $this->products->create();
+                $scraped = new Product();
                 $this->productMapper->mapInto($scraped, $page, $source->getMappings());
 
                 $externalId = $scraped->getExternalId();
@@ -118,7 +118,7 @@ class ScraperService
         ]);
     }
 
-    private function isValid(ProductInterface $product, string $productUrl): bool
+    private function isValid(Product $product, string $productUrl): bool
     {
         $errors = $this->validator->validate($product);
 
