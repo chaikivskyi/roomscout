@@ -228,22 +228,27 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
     }
 
-    public function testUnmappedImageMimeTypeFallsBackToSubtypeExtension(): void
+    public function testUnmappedImageMimeTypeIsNeverWrittenToStorage(): void
     {
         $this->mockGemini([new MockResponse(json_encode([
             'candidates' => [['content' => ['parts' => [
-                ['inlineData' => ['mimeType' => 'image/tiff', 'data' => self::RESULT_PNG]],
+                ['inlineData' => ['mimeType' => 'image/php', 'data' => self::RESULT_PNG]],
             ]]]],
         ], JSON_THROW_ON_ERROR))]);
 
         $placement = $this->placementWithAssets();
+        $filesBefore = $this->projectStorageFiles();
 
-        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
+        try {
+            $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
+            self::fail('Expected an unsupported mime type to be rejected.');
+        } catch (\UnexpectedValueException $e) {
+            self::assertStringContainsString('image/php', $e->getMessage());
+        }
 
-        self::assertSame(PlacementStatus::Completed, $placement->getStatus());
-        $resultVersion = $placement->getResultVersion();
-        self::assertNotNull($resultVersion);
-        self::assertStringEndsWith('/image.tiff', $resultVersion->getImagePath());
+        self::assertSame($filesBefore, $this->projectStorageFiles(), 'A response-controlled extension must never reach the web-served directory.');
+        self::assertSame(PlacementStatus::Processing, $placement->getStatus());
+        self::assertNull($placement->getResultVersion());
     }
 
     public function testNonImageResultMimeTypeIsRetryable(): void

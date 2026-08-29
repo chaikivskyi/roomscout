@@ -37,7 +37,9 @@ final class EmbedProductThumbnailHandler
         $product = $this->entityManager->find(Product::class, $productId);
 
         if (null === $product) {
-            throw new RecoverableMessageHandlingException(sprintf('Product %s not found.', $command->productId), forceRetry: false);
+            $this->logger->info('Skipping embedding: product was deleted.', ['productId' => $command->productId]);
+
+            return;
         }
 
         if ($this->embeddings->existsForProduct($productId)) {

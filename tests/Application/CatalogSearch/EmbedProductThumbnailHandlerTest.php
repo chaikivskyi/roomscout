@@ -161,17 +161,12 @@ final class EmbedProductThumbnailHandlerTest extends ApiTestCase
         self::assertSame(1, $this->entityManager()->getRepository(ProductEmbedding::class)->count(['product' => $product->getId()]));
     }
 
-    public function testMissingProductIsRetriedWithBoundedRetries(): void
+    public function testDeletedProductIsSkippedWithoutRetries(): void
     {
         $client = $this->mockCohere([]);
         $unknownId = Uuid::v7();
 
-        try {
-            $this->handler()(new EmbedProductThumbnail($unknownId->toRfc4122()));
-            self::fail('Expected a recoverable exception.');
-        } catch (RecoverableMessageHandlingException $e) {
-            self::assertFalse($e->forceRetry(), 'Retries must stay bounded by the transport retry strategy.');
-        }
+        $this->handler()(new EmbedProductThumbnail($unknownId->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
         self::assertNull($this->findEmbedding($unknownId));

@@ -104,7 +104,7 @@ final class CreateProjectContextTest extends ApiTestCase
      */
     private function matchingMessages(): array
     {
-        $transport = static::getContainer()->get('messenger.transport.async_embeddings');
+        $transport = static::getContainer()->get('messenger.transport.async_matching');
         \assert($transport instanceof InMemoryTransport);
 
         $messages = [];

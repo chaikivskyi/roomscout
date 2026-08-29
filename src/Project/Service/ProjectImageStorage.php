@@ -50,15 +50,8 @@ final class ProjectImageStorage
 
     private function extensionFor(string $mimeType): string
     {
-        if (isset(self::EXTENSIONS[$mimeType])) {
-            return self::EXTENSIONS[$mimeType];
-        }
-
-        if (1 === preg_match('#^image/([a-z0-9]+)$#', $mimeType, $matches)) {
-            return $matches[1];
-        }
-
-        throw new \UnexpectedValueException(sprintf('Unsupported image mime type "%s".', $mimeType));
+        return self::EXTENSIONS[$mimeType]
+            ?? throw new \UnexpectedValueException(sprintf('Unsupported image mime type "%s".', $mimeType));
     }
 
     public function remove(string $path): void

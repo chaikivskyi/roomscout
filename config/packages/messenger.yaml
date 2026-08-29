@@ -9,10 +9,25 @@ framework:
                 retry_strategy:
                     max_retries: 3
                     multiplier: 2
+            async_scraping:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: scraping
+                retry_strategy:
+                    max_retries: 3
+                    multiplier: 2
             async_embeddings:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
                     queue_name: embeddings
+                retry_strategy:
+                    max_retries: 5
+                    delay: 30000
+                    multiplier: 2
+            async_matching:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: matching
                 retry_strategy:
                     max_retries: 5
                     delay: 30000
@@ -48,6 +63,8 @@ when@test:
         messenger:
             transports:
                 async: 'in-memory://'
+                async_scraping: 'in-memory://'
                 async_embeddings: 'in-memory://'
+                async_matching: 'in-memory://'
                 async_placements: 'in-memory://'
                 failed: 'in-memory://'
