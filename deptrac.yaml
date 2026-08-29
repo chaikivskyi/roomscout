@@ -47,7 +47,6 @@ deptrac:
     CatalogSearch:
       - Api
       - Catalog
-      - Identity
       - Project
     Identity:
       - Api
