@@ -36,22 +36,30 @@ final class FinalFailureMarker
             return;
         }
 
-        if (!$this->entityManager->isOpen()) {
-            $this->registry->resetManager();
+        try {
+            if (!$this->entityManager->isOpen()) {
+                $this->registry->resetManager();
+            }
+
+            $entity = $this->entityManager->find($entityClass, Uuid::fromString($entityId));
+
+            if (null === $entity) {
+                return;
+            }
+
+            if (!$entity->markFailed()) {
+                return;
+            }
+
+            $this->entityManager->flush();
+
+            $this->logger->error($logMessage, $logContext);
+        } catch (\Throwable $exception) {
+            $this->logger->critical('Failed to mark entity as failed after exhausted retries.', [
+                'entity_class' => $entityClass,
+                'entity_id' => $entityId,
+                'exception' => $exception,
+            ]);
         }
-
-        $entity = $this->entityManager->find($entityClass, Uuid::fromString($entityId));
-
-        if (null === $entity) {
-            return;
-        }
-
-        if (!$entity->markFailed()) {
-            return;
-        }
-
-        $this->entityManager->flush();
-
-        $this->logger->error($logMessage, $logContext);
     }
 }

@@ -2,13 +2,18 @@
 
 namespace App\Tests\Application\Project;
 
+use App\Identity\Entity\User;
+use App\Project\Entity\Project;
 use App\Project\Entity\ProjectContext;
 use App\Project\Enum\ProjectContextStatus;
 use App\Project\Repository\ProjectImageVersionRepository;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use League\Flysystem\FilesystemOperator;
+use League\Flysystem\StorageAttributes;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 final class CreateProjectTest extends ApiTestCase
 {
@@ -48,6 +53,42 @@ final class CreateProjectTest extends ApiTestCase
         ]);
 
         self::assertResponseStatusCodeSame(401);
+    }
+
+    public function testAnOwnerDeletedMidRequestIsRejectedWith401(): void
+    {
+        $user = UserFactory::createOne();
+        $userId = $user->getId();
+        $client = $this->authClient($this->tokenFor($user));
+
+        $entityManager = $this->entityManager();
+        static::getContainer()->get('event_dispatcher')->addListener(
+            KernelEvents::CONTROLLER,
+            static function (ControllerEvent $event) use ($entityManager, $userId): void {
+                if (!$event->isMainRequest()) {
+                    return;
+                }
+
+                $owner = $entityManager->find(User::class, $userId);
+                self::assertNotNull($owner);
+                $entityManager->remove($owner);
+                $entityManager->flush();
+            },
+        );
+
+        $client->request('POST', '/api/projects', [
+            'headers' => ['Content-Type' => 'multipart/form-data'],
+            'extra' => [
+                'parameters' => ['prompt' => 'find a similar lamp'],
+                'files' => ['image' => $this->pngUpload()],
+            ],
+        ]);
+
+        self::assertResponseStatusCodeSame(401);
+        self::assertSame(0, $entityManager->getRepository(Project::class)->count([]));
+        self::assertSame([], $this->storage()->listContents('', true)
+            ->filter(static fn (StorageAttributes $item): bool => $item->isFile())
+            ->toArray(), 'The processor must remove the stored image when the command fails.');
     }
 
     public function testCreatesProjectFromImageAndPrompt(): void
