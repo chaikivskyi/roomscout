@@ -2,7 +2,7 @@
 
 namespace App\CatalogSearch\EventListener;
 
-use App\CatalogSearch\Message\MatchContextProductsMessage;
+use App\CatalogSearch\Command\MatchContextProducts;
 use App\Project\Entity\ProjectContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -29,7 +29,7 @@ final class MarkContextFailedOnMatchingFailure
 
         $message = $event->getEnvelope()->getMessage();
 
-        if (!$message instanceof MatchContextProductsMessage) {
+        if (!$message instanceof MatchContextProducts) {
             return;
         }
 

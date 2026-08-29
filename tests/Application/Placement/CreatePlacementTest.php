@@ -3,9 +3,9 @@
 namespace App\Tests\Application\Placement;
 
 use App\Identity\Entity\User;
+use App\Placement\Command\GeneratePlacementImage;
 use App\Placement\Entity\ProductPlacement;
 use App\Placement\Enum\PlacementStatus;
-use App\Placement\Message\GeneratePlacementImageMessage;
 use App\Project\Entity\Project;
 use App\Project\Entity\ProjectContext;
 use App\Tests\Application\ApiTestCase;
@@ -49,8 +49,6 @@ final class CreatePlacementTest extends ApiTestCase
         /** @var array<string, mixed> $data */
         $data = $response->toArray();
 
-        // Asserted as an exact set rather than a denylist: a denylist cannot catch
-        // a field added later, and its entries quietly go vacuous when one is removed.
         self::assertEqualsCanonicalizing(
             ['id', 'status', 'contextId', 'productId', 'prompt', 'resultVersionId', 'resultImageUrl', 'createdAt', 'updatedAt'],
             array_values(array_filter(array_keys($data), static fn (string $key) => !str_starts_with($key, '@'))),
@@ -76,7 +74,6 @@ final class CreatePlacementTest extends ApiTestCase
         $product = ProductFactory::createOne();
         ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $product]);
 
-        // A processing placement on a DIFFERENT context still locks the project.
         $sibling = ProjectContextFactory::new(['project' => $context->getProject()])->completed()->create();
         ProductPlacementFactory::createOne(['context' => $sibling]);
 
@@ -121,7 +118,6 @@ final class CreatePlacementTest extends ApiTestCase
         $entityManager = $this->entityManager();
         $entityManager->persist(new ProductPlacement($placement->getProject(), $sibling, $product, 'gemini-test-image'));
 
-        // Proves the migration actually created the partial unique index.
         $this->expectException(UniqueConstraintViolationException::class);
         $entityManager->flush();
     }
@@ -137,7 +133,6 @@ final class CreatePlacementTest extends ApiTestCase
         $client = $this->authClient($this->tokenFor($user));
         $url = self::placementsUrl($project);
 
-        // A context of another (even own) project is not a context of this one.
         $client->request('POST', $url, ['json' => [
             'contextId' => $foreignContext->getId()->toRfc4122(),
             'productId' => $product->getId()->toRfc4122(),
@@ -243,7 +238,7 @@ final class CreatePlacementTest extends ApiTestCase
     }
 
     /**
-     * @return list<GeneratePlacementImageMessage>
+     * @return list<GeneratePlacementImage>
      */
     private function generationMessages(): array
     {
@@ -253,7 +248,7 @@ final class CreatePlacementTest extends ApiTestCase
         $messages = [];
         foreach ($transport->getSent() as $envelope) {
             $message = $envelope->getMessage();
-            if ($message instanceof GeneratePlacementImageMessage) {
+            if ($message instanceof GeneratePlacementImage) {
                 $messages[] = $message;
             }
         }

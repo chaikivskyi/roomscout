@@ -2,7 +2,9 @@
 
 namespace App\CatalogScraper\Scheduler;
 
-use App\CatalogScraper\Message\RunScrapeMessage;
+use App\CatalogScraper\Command\RunScrape;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\BusNameStamp;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule;
@@ -15,7 +17,11 @@ final class CatalogScraperSchedule implements ScheduleProviderInterface
     {
         return (new Schedule())
             ->add(
-                RecurringMessage::cron('0 0 * * *', new RunScrapeMessage(), new \DateTimeZone('UTC')),
+                RecurringMessage::cron(
+                    '0 0 * * *',
+                    new Envelope(new RunScrape(), [new BusNameStamp('command.bus')]),
+                    new \DateTimeZone('UTC'),
+                ),
             )
             ->processOnlyLastMissedRun(true);
     }

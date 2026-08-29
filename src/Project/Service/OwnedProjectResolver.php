@@ -2,38 +2,25 @@
 
 namespace App\Project\Service;
 
-use App\Identity\Entity\User;
 use App\Project\Entity\Project;
+use App\Project\Exception\ProjectNotFound;
+use App\Project\Exception\ProjectNotOwned;
 use App\Project\Repository\ProjectRepository;
-use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Uid\Uuid;
 
 final class OwnedProjectResolver
 {
     public function __construct(
-        private readonly Security $security,
         private readonly ProjectRepository $projects,
     ) {
     }
 
-    public function resolve(mixed $projectId): Project
+    public function resolve(Uuid $projectId, Uuid $actorId): Project
     {
-        if (!\is_string($projectId) || !Uuid::isValid($projectId)) {
-            throw new NotFoundHttpException('Project not found.');
-        }
+        $project = $this->projects->find($projectId) ?? throw new ProjectNotFound();
 
-        $project = $this->projects->find(Uuid::fromString($projectId));
-
-        if (null === $project) {
-            throw new NotFoundHttpException('Project not found.');
-        }
-
-        $user = $this->security->getUser();
-
-        if (!$user instanceof User || !$project->getUser()->getId()->equals($user->getId())) {
-            throw new AccessDeniedException();
+        if (!$project->getUser()->getId()->equals($actorId)) {
+            throw new ProjectNotOwned();
         }
 
         return $project;

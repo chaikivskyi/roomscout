@@ -32,8 +32,9 @@ class ProjectContext
         private readonly Project $project,
         #[ORM\Column(type: Types::TEXT)]
         private readonly string $prompt,
+        ?Uuid $id = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = $id ?? Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
         $this->status = ProjectContextStatus::Processing;

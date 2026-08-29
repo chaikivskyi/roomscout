@@ -2,7 +2,7 @@
 
 namespace App\Tests\Application\Project;
 
-use App\CatalogSearch\Message\MatchContextProductsMessage;
+use App\CatalogSearch\Command\MatchContextProducts;
 use App\Project\Entity\ProjectContext;
 use App\Project\Enum\ProjectContextStatus;
 use App\Tests\Application\ApiTestCase;
@@ -100,7 +100,7 @@ final class CreateProjectContextTest extends ApiTestCase
     }
 
     /**
-     * @return list<MatchContextProductsMessage>
+     * @return list<MatchContextProducts>
      */
     private function matchingMessages(): array
     {
@@ -110,7 +110,7 @@ final class CreateProjectContextTest extends ApiTestCase
         $messages = [];
         foreach ($transport->getSent() as $envelope) {
             $message = $envelope->getMessage();
-            if ($message instanceof MatchContextProductsMessage) {
+            if ($message instanceof MatchContextProducts) {
                 $messages[] = $message;
             }
         }

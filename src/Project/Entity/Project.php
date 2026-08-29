@@ -26,8 +26,9 @@ class Project
         #[ORM\ManyToOne(targetEntity: User::class)]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
         private readonly User $user,
+        ?Uuid $id = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = $id ?? Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
     }

@@ -2,22 +2,22 @@
 
 namespace App\CatalogSearch\EventListener;
 
+use App\Api\Bus\CommandBusInterface;
 use App\Catalog\Entity\Product;
-use App\CatalogSearch\Message\EmbedProductThumbnailMessage;
+use App\CatalogSearch\Command\EmbedProductThumbnail;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Events;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsEntityListener(event: Events::postPersist, method: 'postPersist', entity: Product::class)]
 final class DispatchEmbeddingOnProductCreated
 {
     public function __construct(
-        private readonly MessageBusInterface $messageBus,
+        private readonly CommandBusInterface $commandBus,
     ) {
     }
 
     public function postPersist(Product $product): void
     {
-        $this->messageBus->dispatch(new EmbedProductThumbnailMessage((string) $product->getId()));
+        $this->commandBus->dispatch(new EmbedProductThumbnail((string) $product->getId()));
     }
 }

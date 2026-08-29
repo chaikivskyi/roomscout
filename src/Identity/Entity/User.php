@@ -79,9 +79,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     #[ORM\Column(length: 64, nullable: true)]
     private ?string $totpSecret = null;
 
-    public function __construct()
+    public function __construct(?Uuid $id = null)
     {
-        $this->id = Uuid::v7();
+        $this->id = $id ?? Uuid::v7();
     }
 
     public function getId(): Uuid

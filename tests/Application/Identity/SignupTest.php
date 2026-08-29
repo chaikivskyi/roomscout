@@ -32,6 +32,7 @@ final class SignupTest extends ApiTestCase
         $user = $this->entityManager()->getRepository(User::class)->findOneBy(['email' => 'new@example.com']);
         self::assertNotNull($user);
         self::assertNotSame('Password123', $user->getPassword());
+        self::assertSame($user->getId()->toRfc4122(), $data['id']);
 
         $this->authClient($data['token'])->request('GET', '/api/me');
         self::assertResponseIsSuccessful();

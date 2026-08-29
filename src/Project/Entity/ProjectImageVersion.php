@@ -24,8 +24,9 @@ class ProjectImageVersion
         private readonly Project $project,
         #[ORM\Column(length: 255)]
         private readonly string $imagePath,
+        ?Uuid $id = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = $id ?? Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
     }
 

@@ -2,9 +2,9 @@
 
 namespace App\Tests\Application\Placement;
 
+use App\Placement\Command\GeneratePlacementImage;
 use App\Placement\Enum\PlacementStatus;
 use App\Placement\EventListener\MarkPlacementFailedOnGenerationFailure;
-use App\Placement\Message\GeneratePlacementImageMessage;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductPlacementFactory;
 use Symfony\Component\Messenger\Envelope;
@@ -18,7 +18,6 @@ final class MarkPlacementFailedOnGenerationFailureTest extends ApiTestCase
 
         $this->listener()($this->failedEvent($placement->getId()->toRfc4122()));
 
-        // Failing the placement is what releases the project's 409 lock.
         self::assertSame(PlacementStatus::Failed, $placement->getStatus());
     }
 
@@ -55,7 +54,7 @@ final class MarkPlacementFailedOnGenerationFailureTest extends ApiTestCase
     private function failedEvent(string $placementId): WorkerMessageFailedEvent
     {
         return new WorkerMessageFailedEvent(
-            new Envelope(new GeneratePlacementImageMessage($placementId)),
+            new Envelope(new GeneratePlacementImage($placementId)),
             'async_placements',
             new \RuntimeException('generation blew up'),
         );

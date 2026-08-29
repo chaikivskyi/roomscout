@@ -23,8 +23,9 @@ class PasswordResetToken
         private readonly string $tokenHash,
         #[ORM\Column]
         private readonly \DateTimeImmutable $expiresAt,
+        ?Uuid $id = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = $id ?? Uuid::v7();
     }
 
     public function getId(): Uuid

@@ -4,10 +4,12 @@ namespace App\Project\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\Api\Bus\QueryBusInterface;
+use App\Api\Security\ActorProviderInterface;
+use App\Api\State\UriVariables;
 use App\Project\ApiResource\ProjectContextOutput;
-use App\Project\Entity\ProjectContext;
-use App\Project\Repository\ProjectContextRepository;
-use App\Project\Service\OwnedProjectResolver;
+use App\Project\Exception\ProjectNotFound;
+use App\Project\Query\ListProjectContexts;
 
 /**
  * @implements ProviderInterface<ProjectContextOutput>
@@ -15,8 +17,8 @@ use App\Project\Service\OwnedProjectResolver;
 final class ProjectContextCollectionProvider implements ProviderInterface
 {
     public function __construct(
-        private readonly OwnedProjectResolver $projectResolver,
-        private readonly ProjectContextRepository $contexts,
+        private readonly ActorProviderInterface $actor,
+        private readonly QueryBusInterface $queryBus,
     ) {
     }
 
@@ -25,18 +27,8 @@ final class ProjectContextCollectionProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
-        $project = $this->projectResolver->resolve($uriVariables['projectId'] ?? null);
+        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null) ?? throw new ProjectNotFound();
 
-        return array_map($this->toDto(...), $this->contexts->findAllForProject($project->getId()));
-    }
-
-    private function toDto(ProjectContext $context): ProjectContextOutput
-    {
-        return new ProjectContextOutput(
-            (string) $context->getId(),
-            $context->getPrompt(),
-            $context->getStatus()->value,
-            $context->getCreatedAt(),
-        );
+        return $this->queryBus->ask(new ListProjectContexts($projectId, $this->actor->requireCurrentId()));
     }
 }

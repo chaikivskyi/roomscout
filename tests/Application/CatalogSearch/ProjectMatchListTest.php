@@ -49,8 +49,6 @@ final class ProjectMatchListTest extends ApiTestCase
         self::assertSame(0.91, $best['score']);
         self::assertSame('https://shop.example.com/walnut-coffee-table', $best['url']);
 
-        // Asserted as an exact set rather than a denylist: a denylist cannot catch a field
-        // added to Product later, and its entries quietly go vacuous when one is removed.
         self::assertEqualsCanonicalizing(
             ['@id', '@type', 'id', 'title', 'price', 'imageUrl', 'score', 'url'],
             array_keys($best),
@@ -125,7 +123,6 @@ final class ProjectMatchListTest extends ApiTestCase
         $data = self::decode($client->request('GET', $url.'?category='.$child->getId()));
         self::assertSame([$inChild->getId()->toRfc4122()], array_column($data['member'], 'id'));
 
-        // An unknown category is ignored — the filter falls back to all matches.
         $data = self::decode($client->request('GET', $url.'?category='.Uuid::v7()->toRfc4122()));
         self::assertSame(3, $data['totalItems']);
     }
@@ -271,7 +268,6 @@ final class ProjectMatchListTest extends ApiTestCase
         $client->request('GET', $base.'not-a-uuid/matches');
         self::assertResponseStatusCodeSame(404);
 
-        // A real context id nested under the wrong project is not found either.
         $client->request('GET', $base.$otherProjectContext->getId()->toRfc4122().'/matches');
         self::assertResponseStatusCodeSame(404);
     }
@@ -284,12 +280,16 @@ final class ProjectMatchListTest extends ApiTestCase
         ]);
         ProjectProductMatchFactory::createOne(['context' => $context]);
 
-        $response = $this->authClient($this->tokenFor($user))
+        $this->authClient($this->tokenFor($user))
             ->request('GET', self::matchesUrl($context));
 
         self::assertResponseStatusCodeSame(202);
         self::assertResponseHeaderSame('Retry-After', '5');
-        self::assertJsonContains(['status' => 'processing']);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json; charset=utf-8');
+        self::assertJsonContains([
+            'status' => 202,
+            'detail' => 'Matching for this context is still running; retry shortly.',
+        ]);
     }
 
     public function testContextWithoutMatchesReturnsEmptyCollection(): void
@@ -328,7 +328,6 @@ final class ProjectMatchListTest extends ApiTestCase
         $client->request('GET', $url.'?priceMin=abc');
         self::assertResponseStatusCodeSame(422);
 
-        // Price filters accept whole units only.
         $client->request('GET', $url.'?priceMin=10.5');
         self::assertResponseStatusCodeSame(422);
 
@@ -343,6 +342,34 @@ final class ProjectMatchListTest extends ApiTestCase
 
         $client->request('GET', $url.'?priceMin=30&priceMax=10');
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testFilterValidationOutranksResolution(): void
+    {
+        $user = UserFactory::createOne();
+        $stranger = UserFactory::createOne();
+        $project = ProjectFactory::createOne(['user' => $user]);
+        $processing = ProjectContextFactory::createOne(['project' => $project]);
+        $badFilters = '?priceMin=50&priceMax=10';
+
+        $owner = $this->authClient($this->tokenFor($user));
+
+        $owner->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches'.$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $owner->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches'.$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $owner->request('GET', self::matchesUrl($processing).$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $this->authClient($this->tokenFor($stranger))
+            ->request('GET', self::matchesUrl($processing).$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $this->authClient($this->tokenFor($user))
+            ->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches');
+        self::assertResponseStatusCodeSame(404);
     }
 
     private function contextFor(User $user): ProjectContext

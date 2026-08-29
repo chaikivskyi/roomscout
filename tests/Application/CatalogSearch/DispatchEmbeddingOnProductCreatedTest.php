@@ -2,7 +2,7 @@
 
 namespace App\Tests\Application\CatalogSearch;
 
-use App\CatalogSearch\Message\EmbedProductThumbnailMessage;
+use App\CatalogSearch\Command\EmbedProductThumbnail;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -30,7 +30,7 @@ final class DispatchEmbeddingOnProductCreatedTest extends ApiTestCase
     }
 
     /**
-     * @return list<EmbedProductThumbnailMessage>
+     * @return list<EmbedProductThumbnail>
      */
     private function embeddingMessages(): array
     {
@@ -40,7 +40,7 @@ final class DispatchEmbeddingOnProductCreatedTest extends ApiTestCase
         $messages = [];
         foreach ($transport->getSent() as $envelope) {
             $message = $envelope->getMessage();
-            if ($message instanceof EmbedProductThumbnailMessage) {
+            if ($message instanceof EmbedProductThumbnail) {
                 $messages[] = $message;
             }
         }

@@ -38,7 +38,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $data = self::decode($response);
         self::assertSame($context->getId()->toRfc4122(), $data['id']);
 
-        // Most-matched first, ties alphabetical; counts are direct, unpriced products included.
         self::assertSame(
             [
                 ['id' => $tables->getId()->toRfc4122(), 'title' => 'Tables', 'count' => 2],
@@ -48,10 +47,8 @@ final class ProjectMatchFiltersTest extends ApiTestCase
             $this->categoryFacets($data),
         );
 
-        // Bounds are floor/ceil'd so they are directly usable as priceMin/priceMax.
         self::assertSame(['min' => 79, 'max' => 250], self::priceFacet($data));
 
-        // Asserted as exact sets so nothing beyond the documented payload leaks out.
         self::assertEqualsCanonicalizing(
             ['@context', '@id', '@type', 'id', 'categories', 'price'],
             array_keys($data),
@@ -100,8 +97,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $data = self::decode($this->authClient($this->tokenFor($user))
             ->request('GET', self::filtersUrl($context).'?priceMin=40'));
 
-        // Unpriced and too-cheap products drop out of the counts, but every
-        // category with a match in the context stays listed — down to count 0.
         self::assertSame(
             [
                 ['id' => $lighting->getId()->toRfc4122(), 'title' => 'Lighting', 'count' => 1],
@@ -111,7 +106,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
             $this->categoryFacets($data),
         );
 
-        // The price facet ignores its own filter.
         self::assertSame(['min' => 10, 'max' => 100], self::priceFacet($data));
     }
 
@@ -134,7 +128,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         self::assertSame(['min' => 20, 'max' => 100], self::priceFacet($data));
         self::assertCount(3, $data['categories']);
 
-        // An unknown category is ignored — bounds fall back to all matches.
         $data = self::decode($client->request('GET', $url.'?category='.Uuid::v7()->toRfc4122()));
         self::assertSame(['min' => 20, 'max' => 300], self::priceFacet($data));
         self::assertCount(3, $data['categories']);
@@ -155,7 +148,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $data = self::decode($this->authClient($this->tokenFor($user))
             ->request('GET', self::filtersUrl($context).'?category='.$parent->getId().'&priceMin=50'));
 
-        // Counts respond to the price filter only — the category filter plays no part.
         self::assertSame(
             [
                 ['id' => $lighting->getId()->toRfc4122(), 'title' => 'Lighting', 'count' => 1],
@@ -165,7 +157,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
             $this->categoryFacets($data),
         );
 
-        // Bounds respond to the category filter only — priceMin=50 does not lift the minimum.
         self::assertSame(['min' => 20, 'max' => 100], self::priceFacet($data));
     }
 
@@ -251,7 +242,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $client->request('GET', $base.'not-a-uuid/matches/filters');
         self::assertResponseStatusCodeSame(404);
 
-        // A real context id nested under the wrong project is not found either.
         $client->request('GET', $base.$otherProjectContext->getId()->toRfc4122().'/matches/filters');
         self::assertResponseStatusCodeSame(404);
     }
@@ -269,7 +259,11 @@ final class ProjectMatchFiltersTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(202);
         self::assertResponseHeaderSame('Retry-After', '5');
-        self::assertJsonContains(['status' => 'processing']);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json; charset=utf-8');
+        self::assertJsonContains([
+            'status' => 202,
+            'detail' => 'Matching for this context is still running; retry shortly.',
+        ]);
     }
 
     public function testInvalidQueryParametersAreRejected(): void
@@ -289,7 +283,6 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $client->request('GET', $url.'?priceMin=abc');
         self::assertResponseStatusCodeSame(422);
 
-        // Price filters accept whole units only.
         $client->request('GET', $url.'?priceMin=10.5');
         self::assertResponseStatusCodeSame(422);
 
@@ -304,6 +297,34 @@ final class ProjectMatchFiltersTest extends ApiTestCase
 
         $client->request('GET', $url.'?priceMin=30&priceMax=10');
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testFilterValidationOutranksResolution(): void
+    {
+        $user = UserFactory::createOne();
+        $stranger = UserFactory::createOne();
+        $project = ProjectFactory::createOne(['user' => $user]);
+        $processing = ProjectContextFactory::createOne(['project' => $project]);
+        $badFilters = '?priceMin=50&priceMax=10';
+
+        $owner = $this->authClient($this->tokenFor($user));
+
+        $owner->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters'.$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $owner->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters'.$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $owner->request('GET', self::filtersUrl($processing).$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $this->authClient($this->tokenFor($stranger))
+            ->request('GET', self::filtersUrl($processing).$badFilters);
+        self::assertResponseStatusCodeSame(422);
+
+        $this->authClient($this->tokenFor($user))
+            ->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters');
+        self::assertResponseStatusCodeSame(404);
     }
 
     private function contextFor(User $user): ProjectContext

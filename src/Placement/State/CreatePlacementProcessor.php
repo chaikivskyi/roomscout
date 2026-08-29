@@ -4,20 +4,15 @@ namespace App\Placement\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Catalog\Entity\Product;
-use App\CatalogSearch\Repository\ProjectProductMatchRepository;
+use App\Api\Bus\CommandBusInterface;
+use App\Api\Bus\QueryBusInterface;
+use App\Api\Security\ActorProviderInterface;
+use App\Api\State\UriVariables;
 use App\Placement\ApiResource\PlacementOutput;
 use App\Placement\ApiResource\PlacementRequest;
-use App\Placement\Entity\ProductPlacement;
-use App\Placement\Repository\ProductPlacementRepository;
-use App\Placement\Service\PlacementOutputMapper;
-use App\Project\Repository\ProjectContextRepository;
-use App\Project\Service\OwnedProjectResolver;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use App\Placement\Command\CreatePlacement;
+use App\Placement\Query\GetPlacement;
+use App\Project\Exception\ProjectNotFound;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -25,51 +20,27 @@ use Symfony\Component\Uid\Uuid;
  */
 final class CreatePlacementProcessor implements ProcessorInterface
 {
-    private const CONFLICT_MESSAGE = 'A placement is already being generated for this project.';
-
     public function __construct(
-        private readonly OwnedProjectResolver $projectResolver,
-        private readonly ProjectContextRepository $contexts,
-        private readonly ProjectProductMatchRepository $matches,
-        private readonly ProductPlacementRepository $placements,
-        #[Autowire('%env(PLACEMENT_IMAGE_MODEL)%')]
-        private readonly string $imageModel,
-        private readonly PlacementOutputMapper $outputMapper,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly ActorProviderInterface $actor,
+        private readonly CommandBusInterface $commandBus,
+        private readonly QueryBusInterface $queryBus,
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): PlacementOutput
     {
-        $project = $this->projectResolver->resolve($uriVariables['projectId'] ?? null);
+        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null) ?? throw new ProjectNotFound();
+        $actorId = $this->actor->requireCurrentId();
+        $placementId = Uuid::v7();
 
-        $projectContext = $this->contexts->findOneForProject($project->getId(), Uuid::fromString($data->contextId));
+        $this->commandBus->dispatch(new CreatePlacement(
+            placementId: $placementId,
+            projectId: $projectId,
+            contextId: Uuid::fromString($data->contextId),
+            productId: Uuid::fromString($data->productId),
+            actorId: $actorId,
+        ));
 
-        if (null === $projectContext) {
-            throw new UnprocessableEntityHttpException('Unknown context for this project.');
-        }
-
-        $productId = Uuid::fromString($data->productId);
-
-        if (!$this->matches->existsForContextAndProduct($projectContext->getId(), $productId)) {
-            throw new UnprocessableEntityHttpException('Product is not matched to this context.');
-        }
-
-        $product = $this->entityManager->find(Product::class, $productId)
-            ?? throw new UnprocessableEntityHttpException('Product is not matched to this context.');
-
-        if ($this->placements->hasActiveForProject($project->getId())) {
-            throw new ConflictHttpException(self::CONFLICT_MESSAGE);
-        }
-
-        $placement = new ProductPlacement($project, $projectContext, $product, $this->imageModel);
-
-        try {
-            $this->placements->save($placement);
-        } catch (UniqueConstraintViolationException $e) {
-            throw new ConflictHttpException(self::CONFLICT_MESSAGE, $e);
-        }
-
-        return $this->outputMapper->map($placement);
+        return $this->queryBus->ask(new GetPlacement($projectId, $placementId, $actorId));
     }
 }

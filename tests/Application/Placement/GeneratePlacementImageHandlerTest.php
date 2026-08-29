@@ -2,10 +2,10 @@
 
 namespace App\Tests\Application\Placement;
 
+use App\Placement\Command\GeneratePlacementImage;
+use App\Placement\Command\GeneratePlacementImageHandler;
 use App\Placement\Entity\ProductPlacement;
 use App\Placement\Enum\PlacementStatus;
-use App\Placement\Message\GeneratePlacementImageMessage;
-use App\Placement\MessageHandler\GeneratePlacementImageHandler;
 use App\Project\Repository\ProjectImageVersionRepository;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
@@ -49,11 +49,10 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
         $placement = $this->placementWithAssets('put the table under the window');
 
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
         self::assertSame(PlacementStatus::Completed, $placement->getStatus());
 
-        // The result was appended as the project's new latest image version.
         $resultVersion = $placement->getResultVersion();
         self::assertNotNull($resultVersion);
         $latest = static::getContainer()->get(ProjectImageVersionRepository::class)
@@ -97,7 +96,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         });
 
         try {
-            $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+            $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
             self::fail('Expected the flush failure to bubble.');
         } catch (\RuntimeException $e) {
             self::assertSame('flush boom', $e->getMessage(), 'The original flush error must not be masked by cleanup.');
@@ -112,7 +111,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
         $placement = ProductPlacementFactory::new()->completed()->create();
 
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
         self::assertSame(PlacementStatus::Completed, $placement->getStatus());
@@ -122,7 +121,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
     {
         $client = $this->mockGemini([]);
 
-        $this->handler()(new GeneratePlacementImageMessage(Uuid::v7()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage(Uuid::v7()->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
     }
@@ -132,7 +131,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $client = $this->mockGemini([]);
 
         try {
-            $this->handler()(new GeneratePlacementImageMessage('999999'));
+            $this->handler()(new GeneratePlacementImage('999999'));
             self::fail('Expected an unrecoverable exception.');
         } catch (UnrecoverableMessageHandlingException $e) {
             self::assertStringContainsString('999999', $e->getMessage());
@@ -145,10 +144,9 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
     {
         $client = $this->mockGemini([]);
 
-        // The factory creates no image version for the project.
         $placement = ProductPlacementFactory::createOne();
 
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
         self::assertSame(PlacementStatus::Failed, $placement->getStatus());
@@ -159,10 +157,9 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $client = $this->mockGemini([]);
 
         $placement = ProductPlacementFactory::createOne();
-        // A version row exists but its file was never written to storage.
         ProjectImageVersionFactory::createOne(['project' => $placement->getProject()]);
 
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
         self::assertSame(PlacementStatus::Failed, $placement->getStatus());
@@ -178,7 +175,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         ProjectImageVersionFactory::createOne(['project' => $placement->getProject(), 'imagePath' => 'room-nothumb/image.png']);
         $this->projectStorage()->write('room-nothumb/image.png', base64_decode(self::PNG_1X1));
 
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
         self::assertSame(PlacementStatus::Failed, $placement->getStatus());
@@ -198,7 +195,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $entityManager->flush();
         $entityManager->clear();
 
-        $this->handler()(new GeneratePlacementImageMessage($placementId->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placementId->toRfc4122()));
 
         self::assertSame(0, $client->getRequestsCount());
         $reloaded = $entityManager->find(ProductPlacement::class, $placementId);
@@ -215,7 +212,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
         $this->expectException(UnrecoverableMessageHandlingException::class);
         $this->expectExceptionMessage('invalid request');
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
     }
 
     public function testResponseWithoutImagePartIsUnrecoverable(): void
@@ -228,7 +225,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
         $this->expectException(UnrecoverableMessageHandlingException::class);
         $this->expectExceptionMessage('no image part');
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
     }
 
     public function testUnmappedImageMimeTypeFallsBackToSubtypeExtension(): void
@@ -241,10 +238,8 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
         $placement = $this->placementWithAssets();
 
-        $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
-        // The bytes were already paid for — an unmapped image format must be
-        // stored (extension from the mime subtype), not discarded and retried.
         self::assertSame(PlacementStatus::Completed, $placement->getStatus());
         $resultVersion = $placement->getResultVersion();
         self::assertNotNull($resultVersion);
@@ -262,11 +257,9 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $placement = $this->placementWithAssets();
 
         try {
-            $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+            $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
             self::fail('Expected a retryable exception.');
         } catch (\UnexpectedValueException $e) {
-            // Gemini output varies per call, so a retry can legitimately return
-            // a storable format; final failure is handled by the listener.
             self::assertStringContainsString('image/svg+xml', $e->getMessage());
         }
 
@@ -281,7 +274,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $placement = $this->placementWithAssets();
 
         try {
-            $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+            $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
             self::fail('Expected a recoverable exception.');
         } catch (RecoverableMessageHandlingException $e) {
             self::assertSame(7000, $e->getRetryDelay());
@@ -298,7 +291,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $placement = $this->placementWithAssets();
 
         try {
-            $this->handler()(new GeneratePlacementImageMessage($placement->getId()->toRfc4122()));
+            $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
             self::fail('Expected a retryable exception.');
         } catch (\RuntimeException $e) {
             self::assertNotInstanceOf(UnrecoverableMessageHandlingException::class, $e);

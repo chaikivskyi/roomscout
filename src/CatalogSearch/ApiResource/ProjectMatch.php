@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\Response;
 use App\CatalogSearch\State\ProjectMatchCollectionProvider;
 use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\Type;
@@ -18,7 +19,33 @@ use Symfony\Component\Validator\Constraints\Type;
         openapi: new Operation(
             tags: ['CatalogSearch / Matches'],
             summary: 'List catalog products matched to a project context',
-            description: 'Products matched to the context\'s prompt + project image query, best match first by default. While matching is still running, responds 202 Accepted with a `Retry-After` header — poll until 200. Only the project owner can list its matches. Each item\'s `id` is the matched product\'s id, not a match id.',
+            description: 'Products matched to the context\'s prompt + project image query, best match first by default. While matching is still running, responds 202 Accepted with a problem document and a `Retry-After` header — poll until 200. Only the project owner can list its matches. Each item\'s `id` is the matched product\'s id, not a match id.',
+            responses: [
+                '202' => new Response(
+                    description: 'Matching for this context is still running. The body is a problem document, not the resource; poll again after the interval in Retry-After.',
+                    content: new \ArrayObject([
+                        'application/problem+json' => [
+                            'schema' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'status' => ['type' => 'integer', 'example' => 202],
+                                    'title' => ['type' => 'string', 'example' => 'An error occurred'],
+                                    'detail' => ['type' => 'string', 'example' => 'Matching for this context is still running; retry shortly.'],
+                                ],
+                            ],
+                        ],
+                    ]),
+                    headers: new \ArrayObject([
+                        'Retry-After' => [
+                            'description' => 'Seconds to wait before polling again.',
+                            'schema' => ['type' => 'integer', 'example' => 5],
+                        ],
+                    ]),
+                ),
+                '401' => new Response(description: 'Missing or invalid JWT.'),
+                '403' => new Response(description: 'The project belongs to another user.'),
+                '404' => new Response(description: 'Unknown project, or unknown context for that project.'),
+            ],
         ),
         parameters: [
             'priceMin' => new QueryParameter(

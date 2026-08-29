@@ -58,8 +58,9 @@ class ProductPlacement
         Product $product,
         #[ORM\Column(length: 64)]
         private readonly string $model,
+        ?Uuid $id = null,
     ) {
-        $this->id = Uuid::v7();
+        $this->id = $id ?? Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
         $this->status = PlacementStatus::Processing;

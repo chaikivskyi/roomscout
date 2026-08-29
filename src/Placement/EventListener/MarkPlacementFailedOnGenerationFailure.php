@@ -2,8 +2,8 @@
 
 namespace App\Placement\EventListener;
 
+use App\Placement\Command\GeneratePlacementImage;
 use App\Placement\Entity\ProductPlacement;
-use App\Placement\Message\GeneratePlacementImageMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
@@ -29,7 +29,7 @@ final class MarkPlacementFailedOnGenerationFailure
 
         $message = $event->getEnvelope()->getMessage();
 
-        if (!$message instanceof GeneratePlacementImageMessage) {
+        if (!$message instanceof GeneratePlacementImage) {
             return;
         }
 

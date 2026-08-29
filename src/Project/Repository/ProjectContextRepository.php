@@ -35,4 +35,9 @@ class ProjectContextRepository extends ServiceEntityRepository
     {
         return $this->findBy(['project' => $projectId], ['id' => 'ASC']);
     }
+
+    public function findInitialForProject(Uuid $projectId): ?ProjectContext
+    {
+        return $this->findOneBy(['project' => $projectId], ['id' => 'ASC']);
+    }
 }

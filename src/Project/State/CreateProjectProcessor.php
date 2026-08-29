@@ -4,17 +4,16 @@ namespace App\Project\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Identity\Entity\User;
+use App\Api\Bus\CommandBusInterface;
+use App\Api\Bus\QueryBusInterface;
+use App\Api\Security\ActorProviderInterface;
 use App\Project\ApiResource\ProjectOutput;
 use App\Project\ApiResource\ProjectRequest;
-use App\Project\Entity\Project;
-use App\Project\Entity\ProjectContext;
-use App\Project\Entity\ProjectImageVersion;
+use App\Project\Command\CreateProject;
+use App\Project\Query\GetProject;
 use App\Project\Service\ProjectImageStorage;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @implements ProcessorInterface<ProjectRequest, ProjectOutput>
@@ -22,43 +21,36 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 final class CreateProjectProcessor implements ProcessorInterface
 {
     public function __construct(
-        private readonly Security $security,
+        private readonly ActorProviderInterface $actor,
         private readonly ProjectImageStorage $imageStorage,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly CommandBusInterface $commandBus,
+        private readonly QueryBusInterface $queryBus,
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): ProjectOutput
     {
-        $user = $this->security->getUser();
-
-        if (!$user instanceof User) {
-            throw new AccessDeniedException();
-        }
-
+        $ownerId = $this->actor->requireCurrentId();
         $image = $data->image ?? throw new UnprocessableEntityHttpException('An image file is required.');
 
         $imagePath = $this->imageStorage->store($image);
+        $projectId = Uuid::v7();
 
         try {
-            $project = new Project($user);
-            $version = new ProjectImageVersion($project, $imagePath);
-            $projectContext = new ProjectContext($project, $data->prompt);
-            $this->entityManager->persist($project);
-            $this->entityManager->persist($version);
-            $this->entityManager->persist($projectContext);
-            $this->entityManager->flush();
+            $this->commandBus->dispatch(new CreateProject(
+                projectId: $projectId,
+                contextId: Uuid::v7(),
+                versionId: Uuid::v7(),
+                ownerId: $ownerId,
+                imagePath: $imagePath,
+                prompt: $data->prompt,
+            ));
         } catch (\Throwable $e) {
             $this->imageStorage->remove($imagePath);
 
             throw $e;
         }
 
-        return new ProjectOutput(
-            (string) $project->getId(),
-            $projectContext->getPrompt(),
-            $projectContext->getStatus()->value,
-            $project->getCreatedAt(),
-        );
+        return $this->queryBus->ask(new GetProject($projectId, $ownerId));
     }
 }

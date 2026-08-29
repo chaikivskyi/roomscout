@@ -10,14 +10,12 @@ use ApiPlatform\OpenApi\Model\Operation;
 use App\Project\State\CreateProjectContextProcessor;
 use App\Project\State\DeleteProjectContextProcessor;
 use App\Project\State\ProjectContextCollectionProvider;
-use App\Project\State\ProjectContextItemProvider;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(operations: [
     new GetCollection(
         uriTemplate: '/projects/{projectId}/contexts',
         uriVariables: ['projectId'],
-        // A project holds a handful of contexts; clients always want them all.
         paginationEnabled: false,
         openapi: new Operation(
             tags: ['Project / Contexts'],
@@ -49,7 +47,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             description: 'Removes the context together with its product matches. Returns 404 for an unknown project or context, 403 for another user\'s project.',
         ),
         output: false,
-        provider: ProjectContextItemProvider::class,
+        read: false,
         processor: DeleteProjectContextProcessor::class,
     ),
 ])]

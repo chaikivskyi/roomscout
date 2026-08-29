@@ -3,9 +3,11 @@
 namespace App\Placement\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
 use App\Placement\State\CreatePlacementProcessor;
+use App\Placement\State\PlacementItemProvider;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(shortName: 'Placement', normalizationContext: ['skip_null_values' => false], operations: [
@@ -20,6 +22,17 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         output: PlacementOutput::class,
         processor: CreatePlacementProcessor::class,
+    ),
+    new Get(
+        uriTemplate: '/projects/{projectId}/placements/{placementId}',
+        uriVariables: ['projectId', 'placementId'],
+        openapi: new Operation(
+            tags: ['Placement / Placements'],
+            summary: 'Read a placement',
+            description: 'Poll this after the 201 to observe the generation finishing: `status` moves from "processing" to "completed" or "failed", and `resultImageUrl` is populated once the result has been appended as the project\'s new latest image version. Returns 404 for an unknown project or placement, 403 for another user\'s project.',
+        ),
+        output: PlacementOutput::class,
+        provider: PlacementItemProvider::class,
     ),
 ])]
 final class PlacementRequest

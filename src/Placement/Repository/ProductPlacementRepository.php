@@ -24,6 +24,11 @@ class ProductPlacementRepository extends ServiceEntityRepository
         $this->getEntityManager()->flush();
     }
 
+    public function findOneForProject(Uuid $projectId, Uuid $placementId): ?ProductPlacement
+    {
+        return $this->findOneBy(['id' => $placementId, 'project' => $projectId]);
+    }
+
     public function hasActiveForProject(Uuid $projectId): bool
     {
         return (bool) $this->getEntityManager()->getConnection()->fetchOne(

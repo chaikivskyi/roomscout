@@ -42,6 +42,7 @@ deptrac:
     Api: ~
     Catalog: ~
     CatalogScraper:
+      - Api
       - Catalog
     CatalogSearch:
       - Api

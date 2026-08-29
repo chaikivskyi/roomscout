@@ -8,6 +8,20 @@ api_platform:
             - '%kernel.project_dir%/src/Project/ApiResource'
             - '%kernel.project_dir%/src/Identity/ApiResource'
             - '%kernel.project_dir%/src/Identity/Entity'
+    exception_to_status:
+        Symfony\Component\Serializer\Exception\ExceptionInterface: 400
+        ApiPlatform\Metadata\Exception\InvalidArgumentException: 400
+        Doctrine\ORM\OptimisticLockException: 409
+
+        App\CatalogSearch\Exception\ContextStillProcessing: 202
+
+        App\Api\Exception\NotFoundException: 404
+        App\Api\Exception\AccessDeniedException: 403
+        App\Api\Exception\ConflictException: 409
+        App\Api\Exception\UnprocessableEntityException: 422
+
+        App\Api\Exception\DomainExceptionInterface: 422
+
     formats:
         jsonld: ['application/ld+json']
         json: ['application/json']
