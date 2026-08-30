@@ -4,18 +4,21 @@ namespace App\Tests\Application\Placement;
 
 use App\Placement\Command\GeneratePlacementImage;
 use App\Placement\Command\GeneratePlacementImageHandler;
+use App\Placement\Dto\ComposedImage;
 use App\Placement\Entity\ProductPlacement;
 use App\Placement\Enum\PlacementStatus;
+use App\Placement\Exception\ImageGenerationRateLimitedException;
+use App\Placement\Exception\ImageGenerationRejectedException;
+use App\Placement\Exception\ImageGenerationUnavailableException;
 use App\Project\Repository\ProjectImageVersionRepository;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
 use App\Tests\Factory\ProductPlacementFactory;
 use App\Tests\Factory\ProjectContextFactory;
 use App\Tests\Factory\ProjectImageVersionFactory;
+use App\Tests\Fake\FakeProductImageComposer;
 use Doctrine\ORM\Events;
 use League\Flysystem\FilesystemOperator;
-use Symfony\Component\HttpClient\MockHttpClient;
-use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Uid\Uuid;
@@ -23,7 +26,6 @@ use Symfony\Component\Uid\Uuid;
 final class GeneratePlacementImageHandlerTest extends ApiTestCase
 {
     private const string PNG_1X1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-    private const string RESULT_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
     protected function tearDown(): void
     {
@@ -40,12 +42,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
     public function testComposesAndStoresTheResultImage(): void
     {
-        $requests = [];
-        $this->mockGemini(function (string $method, string $url, array $options) use (&$requests): MockResponse {
-            $requests[] = ['method' => $method, 'url' => $url, 'body' => $options['body'] ?? ''];
-
-            return self::imageResponse();
-        });
+        $composer = $this->composer();
 
         $placement = $this->placementWithAssets('put the table under the window');
 
@@ -60,31 +57,24 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         self::assertNotNull($latest);
         self::assertTrue($resultVersion->getId()->equals($latest->getId()));
         self::assertStringEndsWith('/image.png', $resultVersion->getImagePath());
-        self::assertSame(base64_decode(self::RESULT_PNG), $this->projectStorage()->read($resultVersion->getImagePath()));
+        self::assertSame(FakeProductImageComposer::defaultImage()->bytes, $this->projectStorage()->read($resultVersion->getImagePath()));
         self::assertGreaterThan(
             $placement->getCreatedAt(),
             $placement->getUpdatedAt(),
             'PreUpdate must advance updatedAt on the processing → completed transition.',
         );
 
-        self::assertCount(1, $requests);
-        self::assertSame('POST', $requests[0]['method']);
-        self::assertSame(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent',
-            $requests[0]['url'],
-        );
-
-        $parts = self::sentParts($requests[0]['body']);
-        self::assertCount(3, $parts);
-        self::assertStringContainsString('put the table under the window', $parts[0]['text'] ?? '');
-        self::assertNotEmpty($parts[1]['inlineData']['data'] ?? '');
-        self::assertNotEmpty($parts[2]['inlineData']['data'] ?? '');
+        $calls = $composer->calls();
+        self::assertCount(1, $calls);
+        self::assertSame('put the table under the window', $calls[0]['prompt'], 'The handler passes the prompt copied onto the placement row.');
+        self::assertSame('image/png', $calls[0]['roomMimeType']);
+        self::assertSame(base64_decode(self::PNG_1X1), $calls[0]['roomBytes']);
+        self::assertSame('image/png', $calls[0]['productMimeType']);
+        self::assertSame(base64_decode(self::PNG_1X1), $calls[0]['productBytes']);
     }
 
     public function testGeneratedFileIsRemovedWhenTheFlushFails(): void
     {
-        $this->mockGemini([self::imageResponse()]);
-
         $placement = $this->placementWithAssets();
         $filesBefore = $this->projectStorageFiles();
 
@@ -107,28 +97,28 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
     public function testTerminalPlacementIsSkipped(): void
     {
-        $client = $this->mockGemini([]);
+        $composer = $this->composer();
 
         $placement = ProductPlacementFactory::new()->completed()->create();
 
         $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
-        self::assertSame(0, $client->getRequestsCount());
+        self::assertSame(0, $composer->callCount());
         self::assertSame(PlacementStatus::Completed, $placement->getStatus());
     }
 
     public function testDeletedPlacementIsSkippedWithoutRetry(): void
     {
-        $client = $this->mockGemini([]);
+        $composer = $this->composer();
 
         $this->handler()(new GeneratePlacementImage(Uuid::v7()->toRfc4122()));
 
-        self::assertSame(0, $client->getRequestsCount());
+        self::assertSame(0, $composer->callCount());
     }
 
     public function testMalformedPlacementIdIsNotRetried(): void
     {
-        $client = $this->mockGemini([]);
+        $composer = $this->composer();
 
         try {
             $this->handler()(new GeneratePlacementImage('999999'));
@@ -137,37 +127,37 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
             self::assertStringContainsString('999999', $e->getMessage());
         }
 
-        self::assertSame(0, $client->getRequestsCount());
+        self::assertSame(0, $composer->callCount());
     }
 
     public function testProjectWithoutAnyImageVersionFailsThePlacement(): void
     {
-        $client = $this->mockGemini([]);
+        $composer = $this->composer();
 
         $placement = ProductPlacementFactory::createOne();
 
         $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
-        self::assertSame(0, $client->getRequestsCount());
+        self::assertSame(0, $composer->callCount());
         self::assertSame(PlacementStatus::Failed, $placement->getStatus());
     }
 
     public function testMissingProjectImageFileFailsThePlacement(): void
     {
-        $client = $this->mockGemini([]);
+        $composer = $this->composer();
 
         $placement = ProductPlacementFactory::createOne();
         ProjectImageVersionFactory::createOne(['project' => $placement->getProject()]);
 
         $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
-        self::assertSame(0, $client->getRequestsCount());
+        self::assertSame(0, $composer->callCount());
         self::assertSame(PlacementStatus::Failed, $placement->getStatus());
     }
 
     public function testMissingProductThumbnailFailsThePlacement(): void
     {
-        $client = $this->mockGemini([]);
+        $composer = $this->composer();
 
         $placement = ProductPlacementFactory::createOne([
             'product' => ProductFactory::new(['thumbnailUrl' => 'gone/thumbnail.png']),
@@ -177,13 +167,13 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
         $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
 
-        self::assertSame(0, $client->getRequestsCount());
+        self::assertSame(0, $composer->callCount());
         self::assertSame(PlacementStatus::Failed, $placement->getStatus());
     }
 
     public function testDeletedProductFailsThePlacement(): void
     {
-        $client = $this->mockGemini([]);
+        $composer = $this->composer();
 
         $placement = $this->placementWithAssets();
         $placementId = $placement->getId();
@@ -197,16 +187,16 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
         $this->handler()(new GeneratePlacementImage($placementId->toRfc4122()));
 
-        self::assertSame(0, $client->getRequestsCount());
+        self::assertSame(0, $composer->callCount());
         $reloaded = $entityManager->find(ProductPlacement::class, $placementId);
         self::assertNotNull($reloaded);
         self::assertSame(PlacementStatus::Failed, $reloaded->getStatus());
         self::assertNull($reloaded->getProduct());
     }
 
-    public function testClientErrorIsUnrecoverable(): void
+    public function testRejectedGenerationIsUnrecoverable(): void
     {
-        $this->mockGemini([new MockResponse('invalid request', ['http_code' => 400])]);
+        $this->composer()->willThrow(new ImageGenerationRejectedException('invalid request'));
 
         $placement = $this->placementWithAssets();
 
@@ -215,26 +205,9 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
     }
 
-    public function testResponseWithoutImagePartIsUnrecoverable(): void
-    {
-        $this->mockGemini([new MockResponse(json_encode([
-            'candidates' => [['content' => ['parts' => [['text' => 'I cannot help with that.']]]]],
-        ], JSON_THROW_ON_ERROR))]);
-
-        $placement = $this->placementWithAssets();
-
-        $this->expectException(UnrecoverableMessageHandlingException::class);
-        $this->expectExceptionMessage('no image part');
-        $this->handler()(new GeneratePlacementImage($placement->getId()->toRfc4122()));
-    }
-
     public function testUnmappedImageMimeTypeIsNeverWrittenToStorage(): void
     {
-        $this->mockGemini([new MockResponse(json_encode([
-            'candidates' => [['content' => ['parts' => [
-                ['inlineData' => ['mimeType' => 'image/php', 'data' => self::RESULT_PNG]],
-            ]]]],
-        ], JSON_THROW_ON_ERROR))]);
+        $this->composer()->willReturn(new ComposedImage('image/php', FakeProductImageComposer::defaultImage()->bytes));
 
         $placement = $this->placementWithAssets();
         $filesBefore = $this->projectStorageFiles();
@@ -253,11 +226,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
     public function testNonImageResultMimeTypeIsRetryable(): void
     {
-        $this->mockGemini([new MockResponse(json_encode([
-            'candidates' => [['content' => ['parts' => [
-                ['inlineData' => ['mimeType' => 'image/svg+xml', 'data' => self::RESULT_PNG]],
-            ]]]],
-        ], JSON_THROW_ON_ERROR))]);
+        $this->composer()->willReturn(new ComposedImage('image/svg+xml', FakeProductImageComposer::defaultImage()->bytes));
 
         $placement = $this->placementWithAssets();
 
@@ -274,7 +243,7 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
 
     public function testRateLimitHonorsRetryAfter(): void
     {
-        $this->mockGemini([new MockResponse('slow down', ['http_code' => 429, 'response_headers' => ['retry-after' => '7']])]);
+        $this->composer()->willThrow(new ImageGenerationRateLimitedException('slow down', 7000));
 
         $placement = $this->placementWithAssets();
 
@@ -289,9 +258,9 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         self::assertSame(PlacementStatus::Processing, $placement->getStatus());
     }
 
-    public function testServerErrorIsRetryable(): void
+    public function testUnavailableProviderIsRetryable(): void
     {
-        $this->mockGemini([new MockResponse('boom', ['http_code' => 500])]);
+        $this->composer()->willThrow(new ImageGenerationUnavailableException('boom'));
 
         $placement = $this->placementWithAssets();
 
@@ -327,25 +296,9 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
         return $placement;
     }
 
-    private static function imageResponse(): MockResponse
+    private function composer(): FakeProductImageComposer
     {
-        return new MockResponse(json_encode([
-            'candidates' => [['content' => ['parts' => [
-                ['text' => 'Here is the edited room.'],
-                ['inlineData' => ['mimeType' => 'image/png', 'data' => self::RESULT_PNG]],
-            ]]]],
-        ], JSON_THROW_ON_ERROR));
-    }
-
-    /**
-     * @param callable|list<MockResponse> $responseFactory
-     */
-    private function mockGemini(callable|array $responseFactory): MockHttpClient
-    {
-        $client = new MockHttpClient($responseFactory, 'https://generativelanguage.googleapis.com');
-        static::getContainer()->set('gemini.client', $client);
-
-        return $client;
+        return static::getContainer()->get(FakeProductImageComposer::class);
     }
 
     private function handler(): GeneratePlacementImageHandler
@@ -377,17 +330,5 @@ final class GeneratePlacementImageHandlerTest extends ApiTestCase
     private function thumbnailStorage(): FilesystemOperator
     {
         return static::getContainer()->get('product_thumbnails.storage');
-    }
-
-    /**
-     * @return list<array{text?: string, inlineData?: array{mimeType?: string, data?: string}}>
-     */
-    private static function sentParts(mixed $body): array
-    {
-        self::assertIsString($body);
-        /** @var array{contents?: list<array{parts?: list<array{text?: string, inlineData?: array{mimeType?: string, data?: string}}>}>} $decoded */
-        $decoded = json_decode($body, true);
-
-        return $decoded['contents'][0]['parts'] ?? [];
     }
 }

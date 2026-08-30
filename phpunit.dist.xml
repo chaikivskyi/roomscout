@@ -25,7 +25,17 @@
         <testsuite name="application">
             <directory>tests/Application</directory>
         </testsuite>
+
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
     </testsuites>
+
+    <groups>
+        <exclude>
+            <group>integration</group>
+        </exclude>
+    </groups>
 
     <source ignoreSuppressionOfDeprecations="true"
             ignoreIndirectDeprecations="true"

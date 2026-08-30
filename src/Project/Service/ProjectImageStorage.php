@@ -9,7 +9,7 @@ use Symfony\Component\Uid\Uuid;
 
 final class ProjectImageStorage
 {
-    private const EXTENSIONS = [
+    public const EXTENSIONS = [
         'image/png' => 'png',
         'image/jpeg' => 'jpg',
         'image/webp' => 'webp',

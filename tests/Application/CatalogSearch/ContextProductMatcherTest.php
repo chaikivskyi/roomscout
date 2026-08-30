@@ -12,6 +12,7 @@ use App\Project\Enum\ProjectContextStatus;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
 use App\Tests\Factory\ProjectContextFactory;
+use App\Tests\Fake\FakeImageEmbedder;
 use Pgvector\Vector;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
@@ -92,7 +93,7 @@ final class ContextProductMatcherTest extends ApiTestCase
 
         $this->entityManager()->persist(new ProductEmbedding(
             product: $product,
-            embedding: new Vector($this->pad($vector)),
+            embedding: new Vector(FakeImageEmbedder::pad($vector)),
             model: 'test-model',
             sourceThumbnailHash: str_repeat('a', 64),
             embeddedAt: new \DateTimeImmutable(),
@@ -109,7 +110,7 @@ final class ContextProductMatcherTest extends ApiTestCase
     {
         $embedding = new ProjectContextEmbedding(
             context: $context,
-            embedding: new Vector($this->pad($vector)),
+            embedding: new Vector(FakeImageEmbedder::pad($vector)),
             model: 'test-model',
             embeddedAt: new \DateTimeImmutable(),
         );
@@ -118,16 +119,6 @@ final class ContextProductMatcherTest extends ApiTestCase
         $this->entityManager()->flush();
 
         return $embedding;
-    }
-
-    /**
-     * @param list<float> $vector
-     *
-     * @return list<float>
-     */
-    private function pad(array $vector): array
-    {
-        return array_merge($vector, array_fill(0, ProductEmbedding::DIMENSIONS - \count($vector), 0.0));
     }
 
     private function matcher(): ContextProductMatcher

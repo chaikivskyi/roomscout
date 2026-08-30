@@ -21,3 +21,43 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+            public: true
+
+        App\Tests\Fake\FakeImageEmbedder: ~
+        App\Tests\Fake\FakeProductImageComposer: ~
+
+        App\CatalogSearch\Service\ImageEmbedderInterface: '@App\Tests\Fake\FakeImageEmbedder'
+        App\Placement\Service\ProductImageComposerInterface: '@App\Tests\Fake\FakeProductImageComposer'
+
+        App\CatalogSearch\Service\CohereImageEmbedder: ~
+        App\Placement\Service\GeminiProductImageComposer: ~
+
+        app.test.cohere_guard:
+            class: App\Tests\Fake\GuardedHttpClient
+            decorates: cohere.client
+            arguments:
+                $inner: '@.inner'
+                $allowed: '%env(bool:INTEGRATION_HTTP)%'
+                $clientId: 'cohere.client'
+
+        app.test.gemini_guard:
+            class: App\Tests\Fake\GuardedHttpClient
+            decorates: gemini.client
+            arguments:
+                $inner: '@.inner'
+                $allowed: '%env(bool:INTEGRATION_HTTP)%'
+                $clientId: 'gemini.client'
+
+        app.test.scraper_guard:
+            class: App\Tests\Fake\GuardedHttpClient
+            decorates: scraper.client
+            arguments:
+                $inner: '@.inner'
+                $allowed: '%env(bool:INTEGRATION_HTTP)%'
+                $clientId: 'scraper.client'
