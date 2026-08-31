@@ -1,6 +1,6 @@
 <?php
 
-namespace App\CatalogSearch\Service;
+namespace App\Catalog\Service;
 
 use App\Catalog\Repository\CategoryRepository;
 use Symfony\Component\Uid\Uuid;

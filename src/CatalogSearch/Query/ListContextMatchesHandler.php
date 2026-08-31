@@ -2,10 +2,10 @@
 
 namespace App\CatalogSearch\Query;
 
+use App\Catalog\Service\CategorySubtreeResolver;
 use App\CatalogSearch\Dto\ProjectMatchCriteria;
 use App\CatalogSearch\Dto\ProjectMatchPage;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
-use App\CatalogSearch\Service\CategorySubtreeResolver;
 use App\CatalogSearch\Service\MatchContextResolver;
 use App\CatalogSearch\Service\ProjectMatchMapper;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

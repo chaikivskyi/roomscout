@@ -40,7 +40,8 @@ deptrac:
   # (a new edge or a cycle) fails the analysis.
   ruleset:
     Api: ~
-    Catalog: ~
+    Catalog:
+      - Api
     CatalogScraper:
       - Api
       - Catalog

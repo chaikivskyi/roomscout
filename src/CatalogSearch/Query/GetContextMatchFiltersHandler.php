@@ -2,11 +2,11 @@
 
 namespace App\CatalogSearch\Query;
 
+use App\Catalog\Service\CategorySubtreeResolver;
 use App\CatalogSearch\ApiResource\CategoryFilter;
 use App\CatalogSearch\ApiResource\PriceRange;
 use App\CatalogSearch\ApiResource\ProjectMatchFilters;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
-use App\CatalogSearch\Service\CategorySubtreeResolver;
 use App\CatalogSearch\Service\MatchContextResolver;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
