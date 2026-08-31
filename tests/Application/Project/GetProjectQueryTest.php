@@ -8,6 +8,7 @@ use App\Project\Query\GetProject;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProjectContextFactory;
 use App\Tests\Factory\ProjectFactory;
+use App\Tests\Factory\ProjectImageVersionFactory;
 use App\Tests\Factory\UserFactory;
 use Symfony\Component\Uid\Uuid;
 
@@ -34,6 +35,28 @@ final class GetProjectQueryTest extends ApiTestCase
         $output = $this->queryBus()->ask(new GetProject($project->getId(), $user->getId()));
 
         self::assertSame($project->getId()->toRfc4122(), $output->id);
+    }
+
+    public function testExposesTheLatestImageVersionAsTheImageUrl(): void
+    {
+        $user = UserFactory::createOne();
+        $project = ProjectFactory::createOne(['user' => $user]);
+        ProjectImageVersionFactory::createOne(['project' => $project, 'imagePath' => 'first/image.jpg']);
+        ProjectImageVersionFactory::createOne(['project' => $project, 'imagePath' => 'second/image.png']);
+
+        $output = $this->queryBus()->ask(new GetProject($project->getId(), $user->getId()));
+
+        self::assertSame('http://localhost/uploads/project/second/image.png', $output->imageUrl);
+    }
+
+    public function testProjectWithoutImageVersionsHasANullImageUrl(): void
+    {
+        $user = UserFactory::createOne();
+        $project = ProjectFactory::createOne(['user' => $user]);
+
+        $output = $this->queryBus()->ask(new GetProject($project->getId(), $user->getId()));
+
+        self::assertNull($output->imageUrl);
     }
 
     public function testUnknownProjectStillThrowsProjectNotFound(): void

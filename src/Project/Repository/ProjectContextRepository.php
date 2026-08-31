@@ -4,6 +4,7 @@ namespace App\Project\Repository;
 
 use App\Project\Entity\ProjectContext;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
@@ -34,5 +35,31 @@ class ProjectContextRepository extends ServiceEntityRepository
     public function findAllForProject(Uuid $projectId): array
     {
         return $this->findBy(['project' => $projectId], ['id' => 'ASC']);
+    }
+
+    /**
+     * @param list<Uuid> $projectIds
+     *
+     * @return array<string, string>
+     */
+    public function findInitialPromptsForProjects(array $projectIds): array
+    {
+        if ([] === $projectIds) {
+            return [];
+        }
+
+        /** @var list<array{project_id: string, prompt: string}> $rows */
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative(
+            <<<'SQL'
+                SELECT DISTINCT ON (project_id) project_id, prompt
+                FROM project_context
+                WHERE project_id IN (:ids)
+                ORDER BY project_id, id ASC
+                SQL,
+            ['ids' => array_map(static fn (Uuid $id): string => (string) $id, $projectIds)],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        return array_column($rows, 'prompt', 'project_id');
     }
 }

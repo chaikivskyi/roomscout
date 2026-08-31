@@ -1,6 +1,6 @@
 <?php
 
-namespace App\CatalogSearch\State;
+namespace App\Project\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\Pagination\Pagination;
@@ -8,20 +8,16 @@ use ApiPlatform\State\Pagination\TraversablePaginator;
 use ApiPlatform\State\ProviderInterface;
 use App\Api\Bus\QueryBusInterface;
 use App\Api\Security\ActorProviderInterface;
-use App\Api\State\UriVariables;
-use App\CatalogSearch\ApiResource\ProjectMatch;
-use App\CatalogSearch\Query\ListContextMatches;
-use App\Project\Exception\ProjectContextNotFound;
-use App\Project\Exception\ProjectNotFound;
+use App\Project\ApiResource\ProjectListItemOutput;
+use App\Project\Query\ListProjects;
 
 /**
- * @implements ProviderInterface<ProjectMatch>
+ * @implements ProviderInterface<ProjectListItemOutput>
  */
-final class ProjectMatchCollectionProvider implements ProviderInterface
+final class ProjectCollectionProvider implements ProviderInterface
 {
     public function __construct(
         private readonly ActorProviderInterface $actor,
-        private readonly MatchFiltersParser $filtersParser,
         private readonly QueryBusInterface $queryBus,
         private readonly Pagination $pagination,
     ) {
@@ -29,20 +25,12 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): TraversablePaginator
     {
-        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null) ?? throw new ProjectNotFound();
-        $contextId = UriVariables::uuid($uriVariables['contextId'] ?? null) ?? throw new ProjectContextNotFound();
-
         /** @var array{int, int, int} $pagination */
         $pagination = $this->pagination->getPagination($operation, $context);
         [$page, , $limit] = $pagination;
 
-        $filters = $this->filtersParser->parse($operation);
-
-        $result = $this->queryBus->ask(new ListContextMatches(
-            projectId: $projectId,
-            contextId: $contextId,
+        $result = $this->queryBus->ask(new ListProjects(
             actorId: $this->actor->requireCurrentId(),
-            filters: $filters,
             page: $page,
             limit: $limit,
         ));

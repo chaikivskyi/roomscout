@@ -2,12 +2,13 @@
 
 namespace App\Project\ApiResource;
 
-final class ProjectSummaryOutput
+final class ProjectListItemOutput
 {
     public function __construct(
         public readonly string $id,
-        public readonly \DateTimeImmutable $createdAt,
+        public readonly ?string $prompt,
         public readonly ?string $imageUrl,
+        public readonly \DateTimeImmutable $createdAt,
     ) {
     }
 }

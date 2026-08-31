@@ -4,14 +4,12 @@ namespace App\Placement\Service;
 
 use App\Placement\ApiResource\PlacementOutput;
 use App\Placement\Entity\ProductPlacement;
-use League\Flysystem\FilesystemOperator;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use App\Project\Service\ProjectImageUrlResolver;
 
 final class PlacementOutputMapper
 {
     public function __construct(
-        #[Autowire(service: 'project.storage')]
-        private readonly FilesystemOperator $storage,
+        private readonly ProjectImageUrlResolver $imageUrls,
     ) {
     }
 
@@ -26,7 +24,7 @@ final class PlacementOutputMapper
             null !== $placement->getProduct() ? (string) $placement->getProduct()->getId() : null,
             $placement->getPrompt(),
             null !== $resultVersion ? (string) $resultVersion->getId() : null,
-            null !== $resultVersion ? $this->storage->publicUrl($resultVersion->getImagePath()) : null,
+            $this->imageUrls->resolve($resultVersion?->getImagePath()),
             $placement->getCreatedAt(),
             $placement->getUpdatedAt(),
         );
