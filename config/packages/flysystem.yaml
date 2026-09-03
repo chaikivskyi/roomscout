@@ -12,6 +12,12 @@ flysystem:
                 directory: '%kernel.project_dir%/public/uploads/product'
             public_url: '%env(DEFAULT_URI)%/uploads/product'
 
+        category_icons.storage:
+            adapter: 'local'
+            options:
+                directory: '%kernel.project_dir%/public/uploads/category'
+            public_url: '%env(DEFAULT_URI)%/uploads/category'
+
         project.storage:
             adapter: 'local'
             options:
@@ -21,6 +27,12 @@ flysystem:
 when@test:
     flysystem:
         storages:
+            category_icons.storage:
+                adapter: 'local'
+                options:
+                    directory: '%kernel.project_dir%/var/storage/test/category'
+                public_url: '%env(DEFAULT_URI)%/uploads/category'
+
             product_thumbnails.storage:
                 adapter: 'local'
                 options:

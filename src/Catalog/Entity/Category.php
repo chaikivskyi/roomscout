@@ -27,6 +27,10 @@ class Category
     #[Assert\NotBlank]
     private ?string $title = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
+    private ?string $iconUrl = null;
+
     /**
      * @var Collection<int, Product>
      */
@@ -75,6 +79,18 @@ class Category
     public function setTitle(string $title): static
     {
         $this->title = $title;
+
+        return $this;
+    }
+
+    public function getIconUrl(): ?string
+    {
+        return $this->iconUrl;
+    }
+
+    public function setIconUrl(?string $iconUrl): static
+    {
+        $this->iconUrl = '' === $iconUrl ? null : $iconUrl;
 
         return $this;
     }
