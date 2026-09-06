@@ -4,19 +4,23 @@ namespace App\Catalog\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
-use App\Api\Bus\QueryBusInterface;
-use App\Api\State\QueryParameters;
-use App\Api\State\UriVariables;
 use App\Catalog\ApiResource\CatalogCategory;
-use App\Catalog\Query\ListCategories;
+use App\Catalog\Entity\Category;
+use App\Catalog\Service\CatalogCategoryMapper;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * @implements ProviderInterface<CatalogCategory>
  */
 final class CategoryCollectionProvider implements ProviderInterface
 {
+    /**
+     * @param ProviderInterface<object> $entities
+     */
     public function __construct(
-        private readonly QueryBusInterface $queryBus,
+        #[Autowire(service: 'api_platform.doctrine.orm.state.collection_provider')]
+        private readonly ProviderInterface $entities,
+        private readonly CatalogCategoryMapper $mapper,
     ) {
     }
 
@@ -25,8 +29,18 @@ final class CategoryCollectionProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
-        $parentId = UriVariables::uuid(QueryParameters::value($operation, 'parent'));
+        $result = $this->entities->provide($operation, $uriVariables, $context);
 
-        return $this->queryBus->ask(new ListCategories($parentId));
+        $items = [];
+
+        if (is_iterable($result)) {
+            foreach ($result as $category) {
+                if ($category instanceof Category) {
+                    $items[] = $this->mapper->map($category);
+                }
+            }
+        }
+
+        return $items;
     }
 }

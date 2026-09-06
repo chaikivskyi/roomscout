@@ -95,7 +95,7 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $this->match($context, $rugs, 15.0);
 
         $data = self::decode($this->authClient($this->tokenFor($user))
-            ->request('GET', self::filtersUrl($context).'?priceMin=40'));
+            ->request('GET', self::filtersUrl($context).'?price[gte]=40'));
 
         self::assertSame(
             [
@@ -146,7 +146,7 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $this->match($context, $lighting, 300.0);
 
         $data = self::decode($this->authClient($this->tokenFor($user))
-            ->request('GET', self::filtersUrl($context).'?category='.$parent->getId().'&priceMin=50'));
+            ->request('GET', self::filtersUrl($context).'?category='.$parent->getId().'&price[gte]=50'));
 
         self::assertSame(
             [
@@ -274,19 +274,13 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $client = $this->authClient($this->tokenFor($user));
         $url = self::filtersUrl($context);
 
-        $client->request('GET', $url.'?priceMin=-1');
+        $client->request('GET', $url.'?price[gte]=-1');
         self::assertResponseStatusCodeSame(422);
 
-        $client->request('GET', $url.'?priceMax=-1');
+        $client->request('GET', $url.'?price[lte]=-1');
         self::assertResponseStatusCodeSame(422);
 
-        $client->request('GET', $url.'?priceMin=abc');
-        self::assertResponseStatusCodeSame(422);
-
-        $client->request('GET', $url.'?priceMin=10.5');
-        self::assertResponseStatusCodeSame(422);
-
-        $client->request('GET', $url.'?priceMax=10.5');
+        $client->request('GET', $url.'?price[gte]=abc');
         self::assertResponseStatusCodeSame(422);
 
         $client->request('GET', $url.'?category=abc');
@@ -295,7 +289,7 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $client->request('GET', $url.'?category=0');
         self::assertResponseStatusCodeSame(422);
 
-        $client->request('GET', $url.'?priceMin=30&priceMax=10');
+        $client->request('GET', $url.'?price[gte]=30&price[lte]=10');
         self::assertResponseStatusCodeSame(422);
     }
 
@@ -305,7 +299,7 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         $stranger = UserFactory::createOne();
         $project = ProjectFactory::createOne(['user' => $user]);
         $processing = ProjectContextFactory::createOne(['project' => $project]);
-        $badFilters = '?priceMin=50&priceMax=10';
+        $badFilters = '?price[gte]=50&price[lte]=10';
 
         $owner = $this->authClient($this->tokenFor($user));
 
@@ -320,7 +314,10 @@ final class ProjectMatchFiltersTest extends ApiTestCase
 
         $this->authClient($this->tokenFor($stranger))
             ->request('GET', self::filtersUrl($processing).$badFilters);
-        self::assertResponseStatusCodeSame(422);
+        self::assertResponseStatusCodeSame(
+            422,
+            'The cross-field price rule is now a parameter constraint, and ParameterValidatorProvider wraps the security checkers — so it answers before ownership is considered.',
+        );
 
         $this->authClient($this->tokenFor($user))
             ->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters');

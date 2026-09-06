@@ -4,7 +4,7 @@ namespace App\Catalog\Dto;
 
 final class ProductCriteriaRules
 {
-    public static function assert(int $page, int $limit, ?int $priceMin, ?int $priceMax): void
+    public static function assert(int $page, int $limit, ?float $priceMin, ?float $priceMax): void
     {
         if ($page < 1) {
             throw new \InvalidArgumentException(sprintf('Page must be at least 1, got %d.', $page));

@@ -8,12 +8,15 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
 use App\Placement\State\CreatePlacementProcessor;
 use App\Placement\State\PlacementItemProvider;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(shortName: 'Placement', normalizationContext: ['skip_null_values' => false], operations: [
     new Post(
         uriTemplate: '/projects/{projectId}/placements',
         uriVariables: ['projectId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         status: 201,
         openapi: new Operation(
             tags: ['Placement / Placements'],
@@ -26,6 +29,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     new Get(
         uriTemplate: '/projects/{projectId}/placements/{placementId}',
         uriVariables: ['projectId', 'placementId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122, 'placementId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         openapi: new Operation(
             tags: ['Placement / Placements'],
             summary: 'Read a placement',

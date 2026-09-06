@@ -72,6 +72,23 @@ final class CreateProjectContextTest extends ApiTestCase
         self::assertCount(0, $this->matchingMessages());
     }
 
+    public function testInvalidBodyAgainstOtherUsersProjectIsForbiddenNotUnprocessable(): void
+    {
+        $stranger = UserFactory::createOne();
+        $project = ProjectFactory::createOne();
+
+        $this->authClient($this->tokenFor($stranger))
+            ->request('POST', '/api/projects/'.$project->getId()->toRfc4122().'/contexts', [
+                'json' => ['prompt' => ''],
+            ]);
+
+        self::assertResponseStatusCodeSame(
+            403,
+            'Operation security runs before request-body validation, so a caller who may not see the resource does not learn whether their body is well-formed.',
+        );
+        self::assertCount(0, $this->matchingMessages());
+    }
+
     public function testRequiresAuthentication(): void
     {
         $project = ProjectFactory::createOne();

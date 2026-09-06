@@ -13,6 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(
             uriTemplate: '/reset-password',
             status: 204,
+            security: "is_granted('PUBLIC_ACCESS')",
             openapi: new Operation(
                 tags: ['Identity / Account'],
                 summary: 'Set a new password using a reset token',

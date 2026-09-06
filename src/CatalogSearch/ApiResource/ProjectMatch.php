@@ -7,7 +7,11 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Response;
+use App\Catalog\Validator\ValidPriceRange;
 use App\CatalogSearch\State\ProjectMatchCollectionProvider;
+use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Validator\Constraints\All;
+use Symfony\Component\Validator\Constraints\Choice;
 use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\Type;
 
@@ -15,6 +19,8 @@ use Symfony\Component\Validator\Constraints\Type;
     new GetCollection(
         uriTemplate: '/projects/{projectId}/contexts/{contextId}/matches',
         uriVariables: ['projectId', 'contextId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122, 'contextId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         paginationItemsPerPage: 15,
         openapi: new Operation(
             tags: ['CatalogSearch / Matches'],
@@ -48,28 +54,18 @@ use Symfony\Component\Validator\Constraints\Type;
             ],
         ),
         parameters: [
-            'priceMin' => new QueryParameter(
-                schema: ['type' => 'integer', 'minimum' => 0],
-                description: 'Lowest product price to include (whole units); products without a price are excluded when set.',
-                constraints: [new Type('integer'), new GreaterThanOrEqual(0)],
-                castToNativeType: true,
-            ),
-            'priceMax' => new QueryParameter(
-                schema: ['type' => 'integer', 'minimum' => 0],
-                description: 'Highest product price to include (whole units); products without a price are excluded when set.',
-                constraints: [new Type('integer'), new GreaterThanOrEqual(0)],
-                castToNativeType: true,
+            'price' => new QueryParameter(
+                description: 'Price bounds, e.g. price[gte]=50&price[lte]=200. Products without a price are excluded when either bound is set.',
+                constraints: [new All([new Type('numeric'), new GreaterThanOrEqual(0)]), new ValidPriceRange()],
             ),
             'category' => new QueryParameter(
                 schema: ['type' => 'string', 'format' => 'uuid'],
                 description: 'Category id (UUID); matches in this category or any of its descendants. An unknown category is ignored.',
             ),
-            'sort' => new QueryParameter(
-                schema: ['type' => 'string', 'enum' => ['score', 'price'], 'default' => 'score'],
-                description: 'Sort by match score or product price; unpriced products always sort last.',
-            ),
-            'direction' => new QueryParameter(
-                schema: ['type' => 'string', 'enum' => ['asc', 'desc'], 'default' => 'desc'],
+            'order' => new QueryParameter(
+                schema: ['type' => 'object'],
+                description: 'Sort by match score or product price, e.g. order[score]=desc or order[price]=asc. Unpriced products always sort last.',
+                constraints: [new All([new Choice(choices: ['asc', 'desc'])])],
             ),
         ],
         provider: ProjectMatchCollectionProvider::class,

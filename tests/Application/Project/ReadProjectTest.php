@@ -59,6 +59,20 @@ final class ReadProjectTest extends ApiTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testUppercaseProjectIdReturns404(): void
+    {
+        $user = UserFactory::createOne();
+        $project = ProjectFactory::createOne(['user' => $user]);
+
+        $this->authClient($this->tokenFor($user))
+            ->request('GET', '/api/projects/'.strtoupper($project->getId()->toRfc4122()));
+
+        self::assertResponseStatusCodeSame(
+            404,
+            'Requirement::UID_RFC4122 matches lowercase hex only, so an uppercased id of the caller\'s own project does not match the route.',
+        );
+    }
+
     public function testOtherUsersProjectIsForbidden(): void
     {
         $stranger = UserFactory::createOne();

@@ -22,7 +22,7 @@ final class GetContextMatchFiltersHandler
 
     public function __invoke(GetContextMatchFilters $query): ProjectMatchFilters
     {
-        $context = $this->contextResolver->resolve($query->projectId, $query->contextId, $query->actorId);
+        $context = $this->contextResolver->resolve($query->projectId, $query->contextId);
 
         $categories = array_map(
             static fn (array $row) => new CategoryFilter($row['id'], $row['title'], $row['count']),

@@ -19,6 +19,13 @@ services:
     App\:
         resource: '../src/'
 
+    app.catalog.filter.price_range:
+        class: ApiPlatform\Doctrine\Orm\Filter\RangeFilter
+        arguments:
+            $managerRegistry: '@doctrine'
+            $properties: { price: ~ }
+        tags: [ 'api_platform.filter' ]
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 

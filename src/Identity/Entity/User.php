@@ -40,6 +40,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Post(
             uriTemplate: '/signup',
+            security: "is_granted('PUBLIC_ACCESS')",
             openapi: new Operation(
                 tags: ['Identity / Account'],
                 summary: 'Create an account (and log in)',

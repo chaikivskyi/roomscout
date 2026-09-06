@@ -3,40 +3,47 @@
 namespace App\Catalog\State;
 
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\State\Pagination\Pagination;
+use ApiPlatform\State\Pagination\PaginatorInterface;
 use ApiPlatform\State\Pagination\TraversablePaginator;
 use ApiPlatform\State\ProviderInterface;
-use App\Api\Bus\QueryBusInterface;
 use App\Catalog\ApiResource\CatalogProduct;
-use App\Catalog\Query\ListProducts;
+use App\Catalog\Entity\Product;
+use App\Catalog\Service\CatalogProductMapper;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * @implements ProviderInterface<CatalogProduct>
  */
 final class ProductCollectionProvider implements ProviderInterface
 {
+    /**
+     * @param ProviderInterface<object> $entities
+     */
     public function __construct(
-        private readonly ProductFiltersParser $filtersParser,
-        private readonly QueryBusInterface $queryBus,
-        private readonly Pagination $pagination,
+        #[Autowire(service: 'api_platform.doctrine.orm.state.collection_provider')]
+        private readonly ProviderInterface $entities,
+        private readonly CatalogProductMapper $mapper,
     ) {
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): TraversablePaginator
     {
-        /** @var array{int, int, int} $pagination */
-        $pagination = $this->pagination->getPagination($operation, $context);
-        [$page, , $limit] = $pagination;
+        $result = $this->entities->provide($operation, $uriVariables, $context);
 
-        $filters = $this->filtersParser->parse($operation);
+        $items = [];
 
-        $result = $this->queryBus->ask(new ListProducts(filters: $filters, page: $page, limit: $limit));
+        if (is_iterable($result)) {
+            foreach ($result as $product) {
+                if ($product instanceof Product) {
+                    $items[] = $this->mapper->map($product);
+                }
+            }
+        }
 
-        return new TraversablePaginator(
-            new \ArrayIterator($result->items),
-            $result->page,
-            $result->limit,
-            $result->total,
-        );
+        $page = $result instanceof PaginatorInterface ? (int) $result->getCurrentPage() : 1;
+        $perPage = $result instanceof PaginatorInterface ? (int) $result->getItemsPerPage() : \count($items);
+        $total = $result instanceof PaginatorInterface ? (int) $result->getTotalItems() : \count($items);
+
+        return new TraversablePaginator(new \ArrayIterator($items), $page, $perPage, $total);
     }
 }

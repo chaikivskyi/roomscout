@@ -18,7 +18,6 @@ api_platform:
 
         App\Api\Exception\UnauthorizedException: 401
         App\Api\Exception\NotFoundException: 404
-        App\Api\Exception\AccessDeniedException: 403
         App\Api\Exception\ConflictException: 409
         App\Api\Exception\UnprocessableEntityException: 422
 

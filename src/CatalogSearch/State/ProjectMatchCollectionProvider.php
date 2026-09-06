@@ -7,12 +7,9 @@ use ApiPlatform\State\Pagination\Pagination;
 use ApiPlatform\State\Pagination\TraversablePaginator;
 use ApiPlatform\State\ProviderInterface;
 use App\Api\Bus\QueryBusInterface;
-use App\Api\Security\ActorProviderInterface;
 use App\Api\State\UriVariables;
 use App\CatalogSearch\ApiResource\ProjectMatch;
 use App\CatalogSearch\Query\ListContextMatches;
-use App\Project\Exception\ProjectContextNotFound;
-use App\Project\Exception\ProjectNotFound;
 
 /**
  * @implements ProviderInterface<ProjectMatch>
@@ -20,8 +17,7 @@ use App\Project\Exception\ProjectNotFound;
 final class ProjectMatchCollectionProvider implements ProviderInterface
 {
     public function __construct(
-        private readonly ActorProviderInterface $actor,
-        private readonly MatchFiltersParser $filtersParser,
+        private readonly MatchFiltersFactory $filters,
         private readonly QueryBusInterface $queryBus,
         private readonly Pagination $pagination,
     ) {
@@ -29,19 +25,18 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): TraversablePaginator
     {
-        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null) ?? throw new ProjectNotFound();
-        $contextId = UriVariables::uuid($uriVariables['contextId'] ?? null) ?? throw new ProjectContextNotFound();
+        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null);
+        $contextId = UriVariables::uuid($uriVariables['contextId'] ?? null);
 
         /** @var array{int, int, int} $pagination */
         $pagination = $this->pagination->getPagination($operation, $context);
         [$page, , $limit] = $pagination;
 
-        $filters = $this->filtersParser->parse($operation);
+        $filters = $this->filters->create($operation);
 
         $result = $this->queryBus->ask(new ListContextMatches(
             projectId: $projectId,
             contextId: $contextId,
-            actorId: $this->actor->requireCurrentId(),
             filters: $filters,
             page: $page,
             limit: $limit,

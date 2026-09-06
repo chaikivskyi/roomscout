@@ -13,8 +13,8 @@ final class ProductCriteriaFilter
     public static function apply(
         QueryBuilder $qb,
         string $alias,
-        ?int $priceMin,
-        ?int $priceMax,
+        ?float $priceMin,
+        ?float $priceMax,
         ?array $categoryIds,
     ): void {
         if (null !== $priceMin) {

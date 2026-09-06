@@ -13,7 +13,6 @@ use App\Project\Command\CreateProject;
 use App\Project\Query\GetProject;
 use App\Project\Query\GetProjectContext;
 use App\Project\Service\ProjectImageStorage;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -32,7 +31,7 @@ final class CreateProjectProcessor implements ProcessorInterface
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): ProjectOutput
     {
         $ownerId = $this->actor->requireCurrentId();
-        $image = $data->image ?? throw new UnprocessableEntityHttpException('An image file is required.');
+        $image = $data->image ?? throw new \LogicException('Validation must reject a request without an image.');
 
         $imagePath = $this->imageStorage->store($image);
         $projectId = Uuid::v7();
@@ -53,12 +52,12 @@ final class CreateProjectProcessor implements ProcessorInterface
             throw $e;
         }
 
-        $project = $this->queryBus->ask(new GetProject($projectId, $ownerId));
+        $project = $this->queryBus->ask(new GetProject($projectId));
 
         return new ProjectOutput(
             $project->id,
             $project->createdAt,
-            $this->queryBus->ask(new GetProjectContext($projectId, $contextId, $ownerId)),
+            $this->queryBus->ask(new GetProjectContext($projectId, $contextId)),
         );
     }
 }

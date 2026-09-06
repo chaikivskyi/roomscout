@@ -10,7 +10,6 @@ final class DeleteProjectContext implements CommandInterface
     public function __construct(
         public readonly Uuid $projectId,
         public readonly Uuid $contextId,
-        public readonly Uuid $actorId,
     ) {
     }
 }

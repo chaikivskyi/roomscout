@@ -14,7 +14,6 @@ final class GetPlacement implements QueryInterface
     public function __construct(
         public readonly Uuid $projectId,
         public readonly Uuid $placementId,
-        public readonly Uuid $actorId,
     ) {
     }
 }

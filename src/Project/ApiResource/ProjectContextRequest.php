@@ -10,12 +10,15 @@ use ApiPlatform\OpenApi\Model\Operation;
 use App\Project\State\CreateProjectContextProcessor;
 use App\Project\State\DeleteProjectContextProcessor;
 use App\Project\State\ProjectContextCollectionProvider;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(operations: [
     new GetCollection(
         uriTemplate: '/projects/{projectId}/contexts',
         uriVariables: ['projectId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         paginationEnabled: false,
         openapi: new Operation(
             tags: ['Project / Contexts'],
@@ -28,6 +31,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     new Post(
         uriTemplate: '/projects/{projectId}/contexts',
         uriVariables: ['projectId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         status: 201,
         openapi: new Operation(
             tags: ['Project / Contexts'],
@@ -40,6 +45,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     new Delete(
         uriTemplate: '/projects/{projectId}/contexts/{contextId}',
         uriVariables: ['projectId', 'contextId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122, 'contextId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         status: 204,
         openapi: new Operation(
             tags: ['Project / Contexts'],

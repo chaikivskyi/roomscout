@@ -63,7 +63,7 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
     /**
      * @return list<array{id: string, title: string, count: int}>
      */
-    public function countByCategoryForContext(Uuid $contextId, ?int $priceMin, ?int $priceMax): array
+    public function countByCategoryForContext(Uuid $contextId, ?float $priceMin, ?float $priceMax): array
     {
         $priced = [];
 

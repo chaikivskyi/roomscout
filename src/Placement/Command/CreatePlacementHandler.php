@@ -9,7 +9,7 @@ use App\Placement\Exception\InvalidPlacementTarget;
 use App\Placement\Exception\PlacementAlreadyRunning;
 use App\Placement\Repository\ProductPlacementRepository;
 use App\Project\Repository\ProjectContextRepository;
-use App\Project\Service\OwnedProjectResolver;
+use App\Project\Service\ProjectFinder;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -19,7 +19,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 final class CreatePlacementHandler
 {
     public function __construct(
-        private readonly OwnedProjectResolver $projectResolver,
+        private readonly ProjectFinder $projects,
         private readonly ProjectContextRepository $contexts,
         private readonly ProjectProductMatchRepository $matches,
         private readonly ProductPlacementRepository $placements,
@@ -31,7 +31,7 @@ final class CreatePlacementHandler
 
     public function __invoke(CreatePlacement $command): void
     {
-        $project = $this->projectResolver->resolve($command->projectId, $command->actorId);
+        $project = $this->projects->find($command->projectId);
 
         $context = $this->contexts->findOneForProject($project->getId(), $command->contextId)
             ?? throw InvalidPlacementTarget::unknownContext();

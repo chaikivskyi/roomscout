@@ -4,7 +4,7 @@ namespace App\Project\Query;
 
 use App\Project\ApiResource\ProjectSummaryOutput;
 use App\Project\Repository\ProjectImageVersionRepository;
-use App\Project\Service\OwnedProjectResolver;
+use App\Project\Service\ProjectFinder;
 use App\Project\Service\ProjectImageUrlResolver;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -12,7 +12,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 final class GetProjectHandler
 {
     public function __construct(
-        private readonly OwnedProjectResolver $projectResolver,
+        private readonly ProjectFinder $projects,
         private readonly ProjectImageVersionRepository $imageVersions,
         private readonly ProjectImageUrlResolver $imageUrls,
     ) {
@@ -20,7 +20,7 @@ final class GetProjectHandler
 
     public function __invoke(GetProject $query): ProjectSummaryOutput
     {
-        $project = $this->projectResolver->resolve($query->projectId, $query->actorId);
+        $project = $this->projects->find($query->projectId);
         $latestVersion = $this->imageVersions->findLatestForProject($project->getId());
 
         return new ProjectSummaryOutput(

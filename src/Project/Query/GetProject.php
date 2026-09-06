@@ -13,7 +13,6 @@ final class GetProject implements QueryInterface
 {
     public function __construct(
         public readonly Uuid $projectId,
-        public readonly Uuid $actorId,
     ) {
     }
 }

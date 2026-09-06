@@ -2,11 +2,11 @@
 
 namespace App\Api\Messenger;
 
+use App\Api\State\Uuids;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
-use Symfony\Component\Uid\Uuid;
 
 final class FinalFailureMarker
 {
@@ -32,7 +32,9 @@ final class FinalFailureMarker
             return;
         }
 
-        if (!Uuid::isValid($entityId)) {
+        $id = Uuids::orNull($entityId);
+
+        if (null === $id) {
             return;
         }
 
@@ -41,7 +43,7 @@ final class FinalFailureMarker
                 $this->registry->resetManager();
             }
 
-            $entity = $this->entityManager->find($entityClass, Uuid::fromString($entityId));
+            $entity = $this->entityManager->find($entityClass, $id);
 
             if (null === $entity) {
                 return;

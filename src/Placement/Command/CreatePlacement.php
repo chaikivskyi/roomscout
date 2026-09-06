@@ -12,7 +12,6 @@ final class CreatePlacement implements CommandInterface
         public readonly Uuid $projectId,
         public readonly Uuid $contextId,
         public readonly Uuid $productId,
-        public readonly Uuid $actorId,
     ) {
     }
 }

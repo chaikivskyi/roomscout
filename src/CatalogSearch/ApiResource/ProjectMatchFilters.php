@@ -8,7 +8,10 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Response;
+use App\Catalog\Validator\ValidPriceRange;
 use App\CatalogSearch\State\ProjectMatchFiltersProvider;
+use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\Type;
 
@@ -16,6 +19,8 @@ use Symfony\Component\Validator\Constraints\Type;
     new Get(
         uriTemplate: '/projects/{projectId}/contexts/{contextId}/matches/filters',
         uriVariables: ['projectId', 'contextId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122, 'contextId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         openapi: new Operation(
             tags: ['CatalogSearch / Matches'],
             summary: 'List available match filters for a project context',
@@ -48,17 +53,9 @@ use Symfony\Component\Validator\Constraints\Type;
             ],
         ),
         parameters: [
-            'priceMin' => new QueryParameter(
-                schema: ['type' => 'integer', 'minimum' => 0],
-                description: 'Lowest product price to include (whole units); products without a price are excluded when set.',
-                constraints: [new Type('integer'), new GreaterThanOrEqual(0)],
-                castToNativeType: true,
-            ),
-            'priceMax' => new QueryParameter(
-                schema: ['type' => 'integer', 'minimum' => 0],
-                description: 'Highest product price to include (whole units); products without a price are excluded when set.',
-                constraints: [new Type('integer'), new GreaterThanOrEqual(0)],
-                castToNativeType: true,
+            'price' => new QueryParameter(
+                description: 'Price bounds, e.g. price[gte]=50&price[lte]=200. Products without a price are excluded when either bound is set.',
+                constraints: [new All([new Type('numeric'), new GreaterThanOrEqual(0)]), new ValidPriceRange()],
             ),
             'category' => new QueryParameter(
                 schema: ['type' => 'string', 'format' => 'uuid'],

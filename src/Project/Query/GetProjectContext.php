@@ -14,7 +14,6 @@ final class GetProjectContext implements QueryInterface
     public function __construct(
         public readonly Uuid $projectId,
         public readonly Uuid $contextId,
-        public readonly Uuid $actorId,
     ) {
     }
 }

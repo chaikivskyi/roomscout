@@ -23,7 +23,7 @@ final class ListContextMatchesHandler
 
     public function __invoke(ListContextMatches $query): ProjectMatchPage
     {
-        $context = $this->contextResolver->resolve($query->projectId, $query->contextId, $query->actorId);
+        $context = $this->contextResolver->resolve($query->projectId, $query->contextId);
 
         ['items' => $items, 'total' => $total] = $this->matches->findPageForContext(
             $context->getId(),

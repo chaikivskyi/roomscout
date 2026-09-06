@@ -15,7 +15,6 @@ final class ListContextMatches implements QueryInterface
     public function __construct(
         public readonly Uuid $projectId,
         public readonly Uuid $contextId,
-        public readonly Uuid $actorId,
         public readonly MatchFilters $filters,
         public readonly int $page,
         public readonly int $limit,

@@ -6,7 +6,6 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Identity\Entity\User;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @implements ProviderInterface<User>
@@ -23,7 +22,7 @@ final class CurrentUserProvider implements ProviderInterface
         $user = $this->security->getUser();
 
         if (!$user instanceof User) {
-            throw new AccessDeniedHttpException('Authenticated principal is not an Identity user.');
+            throw new \LogicException('Authenticated principal is not an Identity user.');
         }
 
         return $user;

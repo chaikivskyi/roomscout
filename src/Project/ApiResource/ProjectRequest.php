@@ -14,6 +14,7 @@ use App\Project\State\CreateProjectProcessor;
 use App\Project\State\ProjectCollectionProvider;
 use App\Project\State\ProjectItemProvider;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(shortName: 'Project', normalizationContext: ['skip_null_values' => false], operations: [
@@ -21,6 +22,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         uriTemplate: '/projects',
         status: 201,
         inputFormats: ['multipart' => ['multipart/form-data']],
+        security: "is_granted('ROLE_USER')",
         openapi: new Operation(
             tags: ['Project / Projects'],
             summary: 'Submit a catalog search query (image + prompt)',
@@ -49,6 +51,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     new Get(
         uriTemplate: '/projects/{projectId}',
         uriVariables: ['projectId'],
+        requirements: ['projectId' => Requirement::UID_RFC4122],
+        security: "is_granted('PROJECT_OWNER', projectId)",
         openapi: new Operation(
             tags: ['Project / Projects'],
             summary: 'Read a project',
@@ -65,6 +69,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     new GetCollection(
         uriTemplate: '/projects',
         paginationItemsPerPage: 15,
+        security: "is_granted('ROLE_USER')",
         openapi: new Operation(
             tags: ['Project / Projects'],
             summary: 'List the current user\'s projects',

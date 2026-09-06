@@ -5,6 +5,7 @@ namespace App\Tests\Application\Catalog;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\CategoryFactory;
 use App\Tests\Factory\ProductFactory;
+use Doctrine\Bundle\DoctrineBundle\Middleware\BacktraceDebugDataHolder;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
@@ -73,7 +74,7 @@ final class ProductListTest extends ApiTestCase
         ProductFactory::createOne(['price' => 40.0]);
         ProductFactory::createOne(['price' => null]);
 
-        $data = self::decode(static::createClient()->request('GET', self::URL.'?priceMin=0'));
+        $data = self::decode(static::createClient()->request('GET', self::URL.'?price[gte]=0'));
 
         self::assertResponseIsSuccessful();
         self::assertSame([40.0, 0.0], self::memberPrices($data));
@@ -104,13 +105,13 @@ final class ProductListTest extends ApiTestCase
 
         $client = static::createClient();
 
-        $data = self::decode($client->request('GET', self::URL.'?priceMin=20'));
+        $data = self::decode($client->request('GET', self::URL.'?price[gte]=20'));
         self::assertSame([50.0], self::memberPrices($data));
 
-        $data = self::decode($client->request('GET', self::URL.'?priceMax=20'));
+        $data = self::decode($client->request('GET', self::URL.'?price[lte]=20'));
         self::assertSame([10.0], self::memberPrices($data));
 
-        $data = self::decode($client->request('GET', self::URL.'?priceMin=5&priceMax=60'));
+        $data = self::decode($client->request('GET', self::URL.'?price[gte]=5&price[lte]=60'));
         self::assertSame(2, $data['totalItems']);
     }
 
@@ -159,10 +160,43 @@ final class ProductListTest extends ApiTestCase
         ProductFactory::createOne(['category' => $lighting, 'price' => 80.0]);
 
         $data = self::decode(static::createClient()
-            ->request('GET', self::URL.'?category='.$tables->getId().'&priceMin=50'));
+            ->request('GET', self::URL.'?category='.$tables->getId().'&price[gte]=50'));
 
         self::assertSame(1, $data['totalItems']);
         self::assertSame($priceyTable->getId()->toRfc4122(), $data['member'][0]['id']);
+    }
+
+    public function testDecimalPriceBoundsAreAccepted(): void
+    {
+        ProductFactory::createOne(['price' => 10.0]);
+        ProductFactory::createOne(['price' => 11.0]);
+
+        $data = self::decode(static::createClient()->request('GET', self::URL.'?price[gte]=10.5'));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([11.0], self::memberPrices($data));
+    }
+
+    public function testCategoryIsJoinedRatherThanFetchedPerProduct(): void
+    {
+        ProductFactory::createMany(10);
+
+        $client = static::createClient();
+        $holder = static::getContainer()->get('doctrine.debug_data_holder');
+        self::assertInstanceOf(BacktraceDebugDataHolder::class, $holder);
+        $holder->reset();
+
+        $client->request('GET', self::URL);
+        self::assertResponseIsSuccessful();
+
+        $data = $holder->getData();
+        $queries = $data['default'] ?? (reset($data) ?: []);
+
+        self::assertLessThanOrEqual(
+            3,
+            \count($queries),
+            'The listing must eager-join the category; one query per product means the join was lost.',
+        );
     }
 
     public function testPaginatesWithFifteenItemsPerPage(): void
@@ -193,20 +227,17 @@ final class ProductListTest extends ApiTestCase
     {
         $client = static::createClient();
 
-        $client->request('GET', self::URL.'?priceMin=-1');
+        $client->request('GET', self::URL.'?price[gte]=-1');
         self::assertResponseStatusCodeSame(422);
 
-        $client->request('GET', self::URL.'?priceMax=-1');
+        $client->request('GET', self::URL.'?price[lte]=-1');
         self::assertResponseStatusCodeSame(422);
 
-        $client->request('GET', self::URL.'?priceMin=abc');
+        $client->request('GET', self::URL.'?price[gte]=abc');
         self::assertResponseStatusCodeSame(422);
 
-        $client->request('GET', self::URL.'?priceMin=10.5');
-        self::assertResponseStatusCodeSame(422);
-
-        $client->request('GET', self::URL.'?priceMax=10.5');
-        self::assertResponseStatusCodeSame(422);
+        $client->request('GET', self::URL.'?price=50');
+        self::assertResponseStatusCodeSame(422, 'A bare price without an operator is not a valid range.');
 
         $client->request('GET', self::URL.'?category=abc');
         self::assertResponseStatusCodeSame(422);
@@ -214,7 +245,7 @@ final class ProductListTest extends ApiTestCase
         $client->request('GET', self::URL.'?category=0');
         self::assertResponseStatusCodeSame(422);
 
-        $client->request('GET', self::URL.'?priceMin=30&priceMax=10');
+        $client->request('GET', self::URL.'?price[gte]=30&price[lte]=10');
         self::assertResponseStatusCodeSame(422);
     }
 

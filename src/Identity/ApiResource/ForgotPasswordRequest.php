@@ -13,6 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(
             uriTemplate: '/forgot-password',
             status: 202,
+            security: "is_granted('PUBLIC_ACCESS')",
             openapi: new Operation(
                 tags: ['Identity / Account'],
                 summary: 'Request a password reset email',

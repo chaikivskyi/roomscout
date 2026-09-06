@@ -4,7 +4,7 @@ namespace App\Project\Command;
 
 use App\Project\Exception\ProjectContextNotFound;
 use App\Project\Repository\ProjectContextRepository;
-use App\Project\Service\OwnedProjectResolver;
+use App\Project\Service\ProjectFinder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -12,7 +12,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 final class DeleteProjectContextHandler
 {
     public function __construct(
-        private readonly OwnedProjectResolver $projectResolver,
+        private readonly ProjectFinder $projects,
         private readonly ProjectContextRepository $contexts,
         private readonly EntityManagerInterface $entityManager,
     ) {
@@ -20,7 +20,7 @@ final class DeleteProjectContextHandler
 
     public function __invoke(DeleteProjectContext $command): void
     {
-        $project = $this->projectResolver->resolve($command->projectId, $command->actorId);
+        $project = $this->projects->find($command->projectId);
 
         $context = $this->contexts->findOneForProject($project->getId(), $command->contextId)
             ?? throw new ProjectContextNotFound();
