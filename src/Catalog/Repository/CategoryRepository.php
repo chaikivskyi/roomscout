@@ -5,6 +5,7 @@ namespace App\Catalog\Repository;
 use App\Catalog\Entity\Category;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -15,6 +16,37 @@ class CategoryRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Category::class);
+    }
+
+    /**
+     * @return list<Category>
+     */
+    public function findRoots(): array
+    {
+        /** @var list<Category> $categories */
+        $categories = $this->createQueryBuilder('c')
+            ->where('c.parent IS NULL')
+            ->orderBy('c.title', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $categories;
+    }
+
+    /**
+     * @return list<Category>
+     */
+    public function findChildrenOf(Uuid $parentId): array
+    {
+        /** @var list<Category> $categories */
+        $categories = $this->createQueryBuilder('c')
+            ->where('c.parent = :parentId')
+            ->setParameter('parentId', $parentId, UuidType::NAME)
+            ->orderBy('c.title', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $categories;
     }
 
     /**

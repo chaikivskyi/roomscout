@@ -9,6 +9,7 @@ final class CatalogTagDescriptionProvider implements TagDescriptionProviderInter
     public function getTagDescriptions(): array
     {
         return [
+            'Catalog / Categories' => 'Public browsing of the catalog category tree.',
             'Catalog / Products' => 'Public browsing of the product catalog.',
         ];
     }

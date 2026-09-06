@@ -51,7 +51,8 @@ security:
         - { path: ^/api/signup, roles: PUBLIC_ACCESS }
         - { path: ^/api/forgot-password, roles: PUBLIC_ACCESS }
         - { path: ^/api/reset-password, roles: PUBLIC_ACCESS }
-        - { path: ^/api/catalog/products$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/catalog/products$, roles: PUBLIC_ACCESS, methods: [GET, HEAD] }
+        - { path: ^/api/catalog/categories$, roles: PUBLIC_ACCESS, methods: [GET, HEAD] }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/login$, roles: PUBLIC_ACCESS }
         - { path: ^/logout$, roles: PUBLIC_ACCESS }

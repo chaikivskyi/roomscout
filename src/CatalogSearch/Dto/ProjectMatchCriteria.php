@@ -2,6 +2,7 @@
 
 namespace App\CatalogSearch\Dto;
 
+use App\Catalog\Dto\ProductCriteriaRules;
 use App\CatalogSearch\Enum\MatchSort;
 use App\CatalogSearch\Enum\SortDirection;
 
@@ -19,20 +20,6 @@ final class ProjectMatchCriteria
         public readonly MatchSort $sort = MatchSort::Score,
         public readonly SortDirection $direction = SortDirection::Desc,
     ) {
-        if ($page < 1) {
-            throw new \InvalidArgumentException(sprintf('Page must be at least 1, got %d.', $page));
-        }
-
-        if ($limit < 1) {
-            throw new \InvalidArgumentException(sprintf('Limit must be at least 1, got %d.', $limit));
-        }
-
-        if ($priceMin < 0 || $priceMax < 0) {
-            throw new \InvalidArgumentException('Price bounds must not be negative.');
-        }
-
-        if (null !== $priceMin && null !== $priceMax && $priceMin > $priceMax) {
-            throw new \InvalidArgumentException('Minimum price must not exceed maximum price.');
-        }
+        ProductCriteriaRules::assert($page, $limit, $priceMin, $priceMax);
     }
 }

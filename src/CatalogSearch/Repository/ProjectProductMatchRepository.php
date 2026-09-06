@@ -2,6 +2,7 @@
 
 namespace App\CatalogSearch\Repository;
 
+use App\Catalog\Repository\ProductCriteriaFilter;
 use App\CatalogSearch\Dto\ProjectMatchCriteria;
 use App\CatalogSearch\Entity\ProjectProductMatch;
 use App\CatalogSearch\Enum\MatchSort;
@@ -36,18 +37,7 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
             ->where('m.context = :context')
             ->setParameter('context', $contextId, UuidType::NAME);
 
-        if (null !== $criteria->priceMin) {
-            $qb->andWhere('p.price >= :priceMin')->setParameter('priceMin', $criteria->priceMin);
-        }
-
-        if (null !== $criteria->priceMax) {
-            $qb->andWhere('p.price <= :priceMax')->setParameter('priceMax', $criteria->priceMax);
-        }
-
-        if (null !== $criteria->categoryIds) {
-            $qb->andWhere('p.category IN (:categoryIds)')
-                ->setParameter('categoryIds', $criteria->categoryIds, ArrayParameterType::STRING);
-        }
+        ProductCriteriaFilter::apply($qb, 'p', $criteria->priceMin, $criteria->priceMax, $criteria->categoryIds);
 
         if (MatchSort::Price === $criteria->sort) {
             $qb->addSelect('CASE WHEN p.price IS NULL THEN 1 ELSE 0 END AS HIDDEN priceIsNull')
