@@ -10,6 +10,7 @@
         "ext-gd": "*",
         "ext-iconv": "*",
         "api-platform/core": "^4.3",
+        "craue/config-bundle": "^3.0",
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.6",

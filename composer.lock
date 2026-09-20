@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c80e3af29839422df134c7969b389b3d",
+    "content-hash": "8e0e6fb8819209329a0698a0d3d67cb3",
     "packages": [
         {
             "name": "api-platform/core",
@@ -355,6 +355,91 @@
                 }
             ],
             "time": "2025-08-20T19:15:30+00:00"
+        },
+        {
+            "name": "craue/config-bundle",
+            "version": "3.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/craue/CraueConfigBundle.git",
+                "reference": "69d884f5d95cbe00eb8fc51d354b4ca01e209573"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/craue/CraueConfigBundle/zipball/69d884f5d95cbe00eb8fc51d354b4ca01e209573",
+                "reference": "69d884f5d95cbe00eb8fc51d354b4ca01e209573",
+                "shasum": ""
+            },
+            "require": {
+                "doctrine/doctrine-bundle": "^2 || ^3",
+                "php": "^8.2",
+                "psr/cache": "^1 || ^2 || ^3",
+                "symfony/cache": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/config": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/dependency-injection": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/form": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/framework-bundle": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/http-foundation": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/http-kernel": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/options-resolver": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/validator": "^5.4 || ^6.4 || ^7.4 || ^8.1"
+            },
+            "require-dev": {
+                "composer/semver": "^3",
+                "craue/translations-tests": "^1",
+                "doctrine/orm": "^2.12 || ^3",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan": "^2.2",
+                "phpstan/phpstan-deprecation-rules": "^2",
+                "phpstan/phpstan-strict-rules": "^2",
+                "phpstan/phpstan-symfony": "^2",
+                "phpunit/phpunit": "^9.6",
+                "symfony/asset": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/browser-kit": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/phpunit-bridge": "^8.1",
+                "symfony/property-info": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/twig-bundle": "^5.4 || ^6.4 || ^7.4 || ^8.1",
+                "symfony/web-profiler-bundle": "^5.4 || ^6.4 || ^7.4 || ^8.1"
+            },
+            "type": "symfony-bundle",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "3.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Craue\\ConfigBundle\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Christian Raue",
+                    "email": "christian.raue@gmail.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://github.com/craue/CraueConfigBundle/contributors"
+                }
+            ],
+            "description": "Database-stored settings made available via a service for your Symfony project.",
+            "homepage": "https://github.com/craue/CraueConfigBundle",
+            "keywords": [
+                "config",
+                "symfony"
+            ],
+            "support": {
+                "issues": "https://github.com/craue/CraueConfigBundle/issues",
+                "source": "https://github.com/craue/CraueConfigBundle/tree/3.0.0"
+            },
+            "time": "2026-09-15T09:43:34+00:00"
         },
         {
             "name": "dasprid/enum",

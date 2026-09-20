@@ -1,0 +1,12 @@
+parameters:
+    app.craue_config_cache.adapter: cache.adapter.filesystem
+
+framework:
+    cache:
+        pools:
+            craue_config_cache:
+                adapter: '%app.craue_config_cache.adapter%'
+
+when@test:
+    parameters:
+        app.craue_config_cache.adapter: craue_config.null_cache_adapter

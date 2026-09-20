@@ -32,5 +32,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(ScrapeSourceCrudController::class, 'Scrape Sources', 'fa fa-spider');
         yield MenuItem::section('Security');
         yield MenuItem::linkToRoute('Two-Factor Auth', 'fa fa-shield-halved', 'admin_2fa_setup');
+        yield MenuItem::section('Configuration');
+        yield MenuItem::linkToRoute('Settings', 'fa fa-sliders', 'admin_settings');
     }
 }

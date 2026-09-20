@@ -2100,6 +2100,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         template?: scalar|Param|null, // Default: "@SchebTwoFactor/Authentication/form.html.twig"
  *     },
  * }
+ * @psalm-type CraueConfigConfig = array{
+ *     db_driver?: "doctrine_orm"|Param, // Default: "doctrine_orm"
+ *     entity_manager?: scalar|Param|null, // Default: "default"
+ *     entity_name?: scalar|Param|null, // Default: "Craue\\ConfigBundle\\Entity\\Setting"
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -2118,6 +2123,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     api_platform?: ApiPlatformConfig,
  *     lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *     scheb_two_factor?: SchebTwoFactorConfig,
+ *     craue_config?: CraueConfigConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -2140,6 +2146,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         zenstruck_foundry?: ZenstruckFoundryConfig,
  *         scheb_two_factor?: SchebTwoFactorConfig,
+ *         craue_config?: CraueConfigConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
@@ -2159,6 +2166,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         api_platform?: ApiPlatformConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         scheb_two_factor?: SchebTwoFactorConfig,
+ *         craue_config?: CraueConfigConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -2181,6 +2189,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         dama_doctrine_test?: DamaDoctrineTestConfig,
  *         zenstruck_foundry?: ZenstruckFoundryConfig,
  *         scheb_two_factor?: SchebTwoFactorConfig,
+ *         craue_config?: CraueConfigConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

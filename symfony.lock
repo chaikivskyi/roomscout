@@ -13,6 +13,9 @@
             "src/ApiResource/.gitignore"
         ]
     },
+    "craue/config-bundle": {
+        "version": "3.0.0"
+    },
     "dama/doctrine-test-bundle": {
         "version": "v8.6.0"
     },
