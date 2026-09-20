@@ -8,7 +8,7 @@ final class InvalidPlacementTarget extends UnprocessableEntityException
 {
     public static function unknownContext(): self
     {
-        return new self('Unknown context for this project.');
+        return new self('Unknown context.');
     }
 
     public static function productNotMatched(): self

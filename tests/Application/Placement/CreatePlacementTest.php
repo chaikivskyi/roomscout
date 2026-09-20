@@ -6,7 +6,6 @@ use App\Identity\Entity\User;
 use App\Placement\Command\GeneratePlacementImage;
 use App\Placement\Entity\ProductPlacement;
 use App\Placement\Enum\PlacementStatus;
-use App\Project\Entity\Project;
 use App\Project\Entity\ProjectContext;
 use App\Tests\Application\ApiTestCase;
 use App\Tests\Factory\ProductFactory;
@@ -21,6 +20,8 @@ use Symfony\Component\Uid\Uuid;
 
 final class CreatePlacementTest extends ApiTestCase
 {
+    private const string PLACEMENTS_URL = '/api/placements';
+
     public function testCreatesPlacementForMatchedProduct(): void
     {
         $user = UserFactory::createOne();
@@ -29,7 +30,7 @@ final class CreatePlacementTest extends ApiTestCase
         ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $product]);
 
         $response = $this->authClient($this->tokenFor($user))
-            ->request('POST', self::placementsUrl($context->getProject()), [
+            ->request('POST', self::PLACEMENTS_URL, [
                 'json' => [
                     'contextId' => $context->getId()->toRfc4122(),
                     'productId' => $product->getId()->toRfc4122(),
@@ -78,7 +79,7 @@ final class CreatePlacementTest extends ApiTestCase
         ProductPlacementFactory::createOne(['context' => $sibling]);
 
         $this->authClient($this->tokenFor($user))
-            ->request('POST', self::placementsUrl($context->getProject()), [
+            ->request('POST', self::PLACEMENTS_URL, [
                 'json' => [
                     'contextId' => $context->getId()->toRfc4122(),
                     'productId' => $product->getId()->toRfc4122(),
@@ -99,7 +100,7 @@ final class CreatePlacementTest extends ApiTestCase
         ProductPlacementFactory::new(['context' => $context])->failed()->create();
 
         $this->authClient($this->tokenFor($user))
-            ->request('POST', self::placementsUrl($context->getProject()), [
+            ->request('POST', self::PLACEMENTS_URL, [
                 'json' => [
                     'contextId' => $context->getId()->toRfc4122(),
                     'productId' => $product->getId()->toRfc4122(),
@@ -122,28 +123,44 @@ final class CreatePlacementTest extends ApiTestCase
         $entityManager->flush();
     }
 
-    public function testUnknownOrForeignContextIsRejected(): void
+    public function testUnknownContextIsRejected(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
-        $foreignContext = ProjectContextFactory::new(['project' => ProjectFactory::new(['user' => $user])])->completed()->create();
         $product = ProductFactory::createOne();
-        ProjectProductMatchFactory::createOne(['context' => $foreignContext, 'product' => $product]);
 
-        $client = $this->authClient($this->tokenFor($user));
-        $url = self::placementsUrl($project);
+        $this->authClient($this->tokenFor($user))
+            ->request('POST', self::PLACEMENTS_URL, [
+                'json' => [
+                    'contextId' => Uuid::v7()->toRfc4122(),
+                    'productId' => $product->getId()->toRfc4122(),
+                ],
+            ]);
 
-        $client->request('POST', $url, ['json' => [
-            'contextId' => $foreignContext->getId()->toRfc4122(),
-            'productId' => $product->getId()->toRfc4122(),
-        ]]);
         self::assertResponseStatusCodeSame(422);
+        self::assertCount(0, $this->generationMessages());
+    }
 
-        $client->request('POST', $url, ['json' => [
-            'contextId' => Uuid::v7()->toRfc4122(),
+    public function testAnyOwnedContextIsAcceptedRegardlessOfProject(): void
+    {
+        $user = UserFactory::createOne();
+        ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
+        $product = ProductFactory::createOne();
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $product]);
+
+        $this->authClient($this->tokenFor($user))
+            ->request('POST', self::PLACEMENTS_URL, [
+                'json' => [
+                    'contextId' => $context->getId()->toRfc4122(),
+                    'productId' => $product->getId()->toRfc4122(),
+                ],
+            ]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertJsonContains([
+            'contextId' => $context->getId()->toRfc4122(),
             'productId' => $product->getId()->toRfc4122(),
-        ]]);
-        self::assertResponseStatusCodeSame(422);
+        ]);
     }
 
     public function testUnmatchedProductIsRejected(): void
@@ -153,7 +170,7 @@ final class CreatePlacementTest extends ApiTestCase
         $unmatched = ProductFactory::createOne();
 
         $this->authClient($this->tokenFor($user))
-            ->request('POST', self::placementsUrl($context->getProject()), [
+            ->request('POST', self::PLACEMENTS_URL, [
                 'json' => [
                     'contextId' => $context->getId()->toRfc4122(),
                     'productId' => $unmatched->getId()->toRfc4122(),
@@ -167,10 +184,9 @@ final class CreatePlacementTest extends ApiTestCase
     public function testMalformedIdsAreRejected(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
 
         $client = $this->authClient($this->tokenFor($user));
-        $url = self::placementsUrl($project);
+        $url = self::PLACEMENTS_URL;
 
         $client->request('POST', $url, ['json' => ['contextId' => 'not-a-uuid', 'productId' => Uuid::v7()->toRfc4122()]]);
         self::assertResponseStatusCodeSame(422);
@@ -184,26 +200,32 @@ final class CreatePlacementTest extends ApiTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
-    public function testUnknownProjectReturns404(): void
+    public function testNonDeserializableBodyReturns400(): void
     {
-        $client = $this->authClient($this->tokenFor(UserFactory::createOne()));
-        $body = ['json' => ['contextId' => Uuid::v7()->toRfc4122(), 'productId' => Uuid::v7()->toRfc4122()]];
+        $user = UserFactory::createOne();
 
-        $client->request('POST', '/api/projects/'.Uuid::v7()->toRfc4122().'/placements', $body);
-        self::assertResponseStatusCodeSame(404);
+        $this->authClient($this->tokenFor($user))
+            ->request('POST', self::PLACEMENTS_URL, [
+                'headers' => ['Content-Type' => 'application/json'],
+                'body' => 'not json at all',
+            ]);
 
-        $client->request('POST', '/api/projects/not-a-uuid/placements', $body);
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseStatusCodeSame(400);
     }
 
-    public function testOtherUsersProjectIsForbidden(): void
+    public function testOtherUsersContextIsForbidden(): void
     {
         $stranger = UserFactory::createOne();
-        $project = ProjectFactory::createOne();
+        $context = $this->contextFor(UserFactory::createOne());
+        $product = ProductFactory::createOne();
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $product]);
 
         $this->authClient($this->tokenFor($stranger))
-            ->request('POST', self::placementsUrl($project), [
-                'json' => ['contextId' => Uuid::v7()->toRfc4122(), 'productId' => Uuid::v7()->toRfc4122()],
+            ->request('POST', self::PLACEMENTS_URL, [
+                'json' => [
+                    'contextId' => $context->getId()->toRfc4122(),
+                    'productId' => $product->getId()->toRfc4122(),
+                ],
             ]);
 
         self::assertResponseStatusCodeSame(403);
@@ -212,9 +234,7 @@ final class CreatePlacementTest extends ApiTestCase
 
     public function testRequiresAuthentication(): void
     {
-        $project = ProjectFactory::createOne();
-
-        static::createClient()->request('POST', self::placementsUrl($project), [
+        static::createClient()->request('POST', self::PLACEMENTS_URL, [
             'json' => ['contextId' => Uuid::v7()->toRfc4122(), 'productId' => Uuid::v7()->toRfc4122()],
         ]);
 
@@ -230,11 +250,6 @@ final class CreatePlacementTest extends ApiTestCase
         }
 
         return ProjectContextFactory::new($attributes)->completed()->create();
-    }
-
-    private static function placementsUrl(Project $project): string
-    {
-        return '/api/projects/'.$project->getId()->toRfc4122().'/placements';
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace App\CatalogSearch\Repository;
 
 use App\Catalog\Repository\ProductCriteriaFilter;
-use App\CatalogSearch\Dto\ProjectMatchCriteria;
+use App\CatalogSearch\Dto\ContextMatchCriteria;
 use App\CatalogSearch\Entity\ProjectProductMatch;
 use App\CatalogSearch\Enum\MatchSort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -27,7 +27,7 @@ class ProjectProductMatchRepository extends ServiceEntityRepository
     /**
      * @return array{items: list<ProjectProductMatch>, total: int}
      */
-    public function findPageForContext(Uuid $contextId, ProjectMatchCriteria $criteria): array
+    public function findPageForContext(Uuid $contextId, ContextMatchCriteria $criteria): array
     {
         $order = $criteria->direction->toOrderKeyword();
 

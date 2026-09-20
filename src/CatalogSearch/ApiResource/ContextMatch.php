@@ -8,7 +8,7 @@ use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Response;
 use App\Catalog\Validator\ValidPriceRange;
-use App\CatalogSearch\State\ProjectMatchCollectionProvider;
+use App\CatalogSearch\State\ContextMatchCollectionProvider;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\Choice;
@@ -17,15 +17,15 @@ use Symfony\Component\Validator\Constraints\Type;
 
 #[ApiResource(operations: [
     new GetCollection(
-        uriTemplate: '/projects/{projectId}/contexts/{contextId}/matches',
-        uriVariables: ['projectId', 'contextId'],
-        requirements: ['projectId' => Requirement::UID_RFC4122, 'contextId' => Requirement::UID_RFC4122],
-        security: "is_granted('PROJECT_OWNER', projectId)",
+        uriTemplate: '/catalog-search/contexts/{contextId}/matches',
+        uriVariables: ['contextId'],
+        requirements: ['contextId' => Requirement::UID_RFC4122],
+        security: "is_granted('CONTEXT_OWNER', contextId)",
         paginationItemsPerPage: 15,
         openapi: new Operation(
             tags: ['CatalogSearch / Matches'],
-            summary: 'List catalog products matched to a project context',
-            description: 'Products matched to the context\'s prompt + project image query, best match first by default. While matching is still running, responds 202 Accepted with a problem document and a `Retry-After` header — poll until 200. Only the project owner can list its matches. Each item\'s `id` is the matched product\'s id, not a match id.',
+            summary: 'List catalog products matched to a context',
+            description: 'Products matched to the context\'s prompt + project image query, best match first by default. While matching is still running, responds 202 Accepted with a problem document and a `Retry-After` header — poll until 200. Only the owner of the context\'s project can list its matches. Each item\'s `id` is the matched product\'s id, not a match id.',
             responses: [
                 '202' => new Response(
                     description: 'Matching for this context is still running. The body is a problem document, not the resource; poll again after the interval in Retry-After.',
@@ -49,8 +49,8 @@ use Symfony\Component\Validator\Constraints\Type;
                     ]),
                 ),
                 '401' => new Response(description: 'Missing or invalid JWT.'),
-                '403' => new Response(description: 'The project belongs to another user.'),
-                '404' => new Response(description: 'Unknown project, or unknown context for that project.'),
+                '403' => new Response(description: 'The context belongs to another user.'),
+                '404' => new Response(description: 'Unknown context.'),
             ],
         ),
         parameters: [
@@ -68,10 +68,10 @@ use Symfony\Component\Validator\Constraints\Type;
                 constraints: [new All([new Choice(choices: ['asc', 'desc'])])],
             ),
         ],
-        provider: ProjectMatchCollectionProvider::class,
+        provider: ContextMatchCollectionProvider::class,
     ),
 ])]
-final class ProjectMatch
+final class ContextMatch
 {
     public function __construct(
         public readonly string $id,

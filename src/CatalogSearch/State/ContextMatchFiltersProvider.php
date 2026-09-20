@@ -6,13 +6,13 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Api\Bus\QueryBusInterface;
 use App\Api\State\UriVariables;
-use App\CatalogSearch\ApiResource\ProjectMatchFilters;
+use App\CatalogSearch\ApiResource\ContextMatchFilters;
 use App\CatalogSearch\Query\GetContextMatchFilters;
 
 /**
- * @implements ProviderInterface<ProjectMatchFilters>
+ * @implements ProviderInterface<ContextMatchFilters>
  */
-final class ProjectMatchFiltersProvider implements ProviderInterface
+final class ContextMatchFiltersProvider implements ProviderInterface
 {
     public function __construct(
         private readonly MatchFiltersFactory $filters,
@@ -20,14 +20,12 @@ final class ProjectMatchFiltersProvider implements ProviderInterface
     ) {
     }
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ProjectMatchFilters
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ContextMatchFilters
     {
-        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null);
         $contextId = UriVariables::uuid($uriVariables['contextId'] ?? null);
         $filters = $this->filters->create($operation);
 
         return $this->queryBus->ask(new GetContextMatchFilters(
-            projectId: $projectId,
             contextId: $contextId,
             filters: $filters,
         ));

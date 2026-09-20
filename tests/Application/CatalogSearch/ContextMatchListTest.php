@@ -14,7 +14,7 @@ use App\Tests\Factory\UserFactory;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
-final class ProjectMatchListTest extends ApiTestCase
+final class ContextMatchListTest extends ApiTestCase
 {
     public function testListsMatchesBestFirstWithProductDetails(): void
     {
@@ -226,7 +226,7 @@ final class ProjectMatchListTest extends ApiTestCase
         self::assertResponseStatusCodeSame(401);
     }
 
-    public function testOtherUsersProjectIsForbidden(): void
+    public function testOtherUsersContextIsForbidden(): void
     {
         $stranger = UserFactory::createOne();
         $context = ProjectContextFactory::createOne();
@@ -237,39 +237,32 @@ final class ProjectMatchListTest extends ApiTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testUnknownProjectReturns404(): void
+    public function testUnknownContextReturns404(): void
     {
-        $user = UserFactory::createOne();
-        $contextId = Uuid::v7()->toRfc4122();
+        $client = $this->authClient($this->tokenFor(UserFactory::createOne()));
 
-        $client = $this->authClient($this->tokenFor($user));
-
-        $client->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.$contextId.'/matches');
+        $client->request('GET', '/api/catalog-search/contexts/'.Uuid::v7()->toRfc4122().'/matches');
         self::assertResponseStatusCodeSame(404);
 
-        $client->request('GET', '/api/projects/not-a-uuid/contexts/'.$contextId.'/matches');
+        $client->request('GET', '/api/catalog-search/contexts/not-a-uuid/matches');
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testUnknownOrForeignContextReturns404(): void
+    public function testAnyOwnedContextIsReachableRegardlessOfProject(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
-        $otherProjectContext = ProjectContextFactory::createOne([
-            'project' => ProjectFactory::new(['user' => $user]),
-        ]);
+        ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
+        $product = ProductFactory::createOne();
+        ProjectProductMatchFactory::createOne(['context' => $context, 'product' => $product]);
 
-        $client = $this->authClient($this->tokenFor($user));
-        $base = '/api/projects/'.$project->getId()->toRfc4122().'/contexts/';
+        $response = $this->authClient($this->tokenFor($user))
+            ->request('GET', self::matchesUrl($context));
 
-        $client->request('GET', $base.Uuid::v7()->toRfc4122().'/matches');
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
 
-        $client->request('GET', $base.'not-a-uuid/matches');
-        self::assertResponseStatusCodeSame(404);
-
-        $client->request('GET', $base.$otherProjectContext->getId()->toRfc4122().'/matches');
-        self::assertResponseStatusCodeSame(404);
+        $data = self::decode($response);
+        self::assertSame([$product->getId()->toRfc4122()], array_column($data['member'], 'id'));
     }
 
     public function testProcessingContextReturns202WithRetryAfter(): void
@@ -348,10 +341,7 @@ final class ProjectMatchListTest extends ApiTestCase
 
         $owner = $this->authClient($this->tokenFor($user));
 
-        $owner->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches'.$badFilters);
-        self::assertResponseStatusCodeSame(422);
-
-        $owner->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches'.$badFilters);
+        $owner->request('GET', '/api/catalog-search/contexts/'.Uuid::v7()->toRfc4122().'/matches'.$badFilters);
         self::assertResponseStatusCodeSame(422);
 
         $owner->request('GET', self::matchesUrl($processing).$badFilters);
@@ -361,11 +351,11 @@ final class ProjectMatchListTest extends ApiTestCase
             ->request('GET', self::matchesUrl($processing).$badFilters);
         self::assertResponseStatusCodeSame(
             422,
-            'The cross-field price rule is now a parameter constraint, and ParameterValidatorProvider wraps the security checkers — so it answers before ownership is considered.',
+            'The cross-field price rule is a parameter constraint, and ParameterValidatorProvider wraps the security checkers — so it answers before ownership is considered.',
         );
 
         $this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches');
+            ->request('GET', '/api/catalog-search/contexts/'.Uuid::v7()->toRfc4122().'/matches');
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -378,8 +368,7 @@ final class ProjectMatchListTest extends ApiTestCase
 
     private static function matchesUrl(ProjectContext $context): string
     {
-        return '/api/projects/'.$context->getProject()->getId()->toRfc4122()
-            .'/contexts/'.$context->getId()->toRfc4122().'/matches';
+        return '/api/catalog-search/contexts/'.$context->getId()->toRfc4122().'/matches';
     }
 
     private function matchWithPrice(ProjectContext $context, ?float $price): void

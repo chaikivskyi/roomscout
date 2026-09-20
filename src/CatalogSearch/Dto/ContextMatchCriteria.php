@@ -6,7 +6,7 @@ use App\Catalog\Dto\ProductCriteriaRules;
 use App\CatalogSearch\Enum\MatchSort;
 use App\CatalogSearch\Enum\SortDirection;
 
-final class ProjectMatchCriteria
+final class ContextMatchCriteria
 {
     /**
      * @param non-empty-list<string>|null $categoryIds

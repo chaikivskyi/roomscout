@@ -15,7 +15,7 @@ use App\Tests\Factory\UserFactory;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
-final class ProjectMatchFiltersTest extends ApiTestCase
+final class ContextMatchFiltersTest extends ApiTestCase
 {
     public function testReturnsCategoryCountsAndPriceBounds(): void
     {
@@ -210,7 +210,7 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         self::assertResponseStatusCodeSame(401);
     }
 
-    public function testOtherUsersProjectIsForbidden(): void
+    public function testOtherUsersContextIsForbidden(): void
     {
         $stranger = UserFactory::createOne();
         $context = ProjectContextFactory::createOne();
@@ -221,29 +221,29 @@ final class ProjectMatchFiltersTest extends ApiTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testUnknownProjectOrContextReturns404(): void
+    public function testUnknownContextReturns404(): void
+    {
+        $client = $this->authClient($this->tokenFor(UserFactory::createOne()));
+
+        $client->request('GET', '/api/catalog-search/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters');
+        self::assertResponseStatusCodeSame(404);
+
+        $client->request('GET', '/api/catalog-search/contexts/not-a-uuid/matches/filters');
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAnyOwnedContextIsReachableRegardlessOfProject(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
-        $otherProjectContext = ProjectContextFactory::createOne([
-            'project' => ProjectFactory::new(['user' => $user]),
-        ]);
+        ProjectFactory::createOne(['user' => $user]);
+        $context = $this->contextFor($user);
 
-        $client = $this->authClient($this->tokenFor($user));
+        $response = $this->authClient($this->tokenFor($user))->request('GET', self::filtersUrl($context));
 
-        $client->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters');
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
 
-        $base = '/api/projects/'.$project->getId()->toRfc4122().'/contexts/';
-
-        $client->request('GET', $base.Uuid::v7()->toRfc4122().'/matches/filters');
-        self::assertResponseStatusCodeSame(404);
-
-        $client->request('GET', $base.'not-a-uuid/matches/filters');
-        self::assertResponseStatusCodeSame(404);
-
-        $client->request('GET', $base.$otherProjectContext->getId()->toRfc4122().'/matches/filters');
-        self::assertResponseStatusCodeSame(404);
+        $data = self::decode($response);
+        self::assertSame($context->getId()->toRfc4122(), $data['id']);
     }
 
     public function testProcessingContextReturns202WithRetryAfter(): void
@@ -303,10 +303,7 @@ final class ProjectMatchFiltersTest extends ApiTestCase
 
         $owner = $this->authClient($this->tokenFor($user));
 
-        $owner->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters'.$badFilters);
-        self::assertResponseStatusCodeSame(422);
-
-        $owner->request('GET', '/api/projects/'.$project->getId()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters'.$badFilters);
+        $owner->request('GET', '/api/catalog-search/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters'.$badFilters);
         self::assertResponseStatusCodeSame(422);
 
         $owner->request('GET', self::filtersUrl($processing).$badFilters);
@@ -316,11 +313,11 @@ final class ProjectMatchFiltersTest extends ApiTestCase
             ->request('GET', self::filtersUrl($processing).$badFilters);
         self::assertResponseStatusCodeSame(
             422,
-            'The cross-field price rule is now a parameter constraint, and ParameterValidatorProvider wraps the security checkers — so it answers before ownership is considered.',
+            'The cross-field price rule is a parameter constraint, and ParameterValidatorProvider wraps the security checkers — so it answers before ownership is considered.',
         );
 
         $this->authClient($this->tokenFor($user))
-            ->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters');
+            ->request('GET', '/api/catalog-search/contexts/'.Uuid::v7()->toRfc4122().'/matches/filters');
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -333,8 +330,7 @@ final class ProjectMatchFiltersTest extends ApiTestCase
 
     private static function filtersUrl(ProjectContext $context): string
     {
-        return '/api/projects/'.$context->getProject()->getId()->toRfc4122()
-            .'/contexts/'.$context->getId()->toRfc4122().'/matches/filters';
+        return '/api/catalog-search/contexts/'.$context->getId()->toRfc4122().'/matches/filters';
     }
 
     private function match(ProjectContext $context, Category $category, ?float $price): void

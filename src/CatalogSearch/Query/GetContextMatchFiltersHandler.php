@@ -4,8 +4,8 @@ namespace App\CatalogSearch\Query;
 
 use App\Catalog\Service\CategorySubtreeResolver;
 use App\CatalogSearch\ApiResource\CategoryFilter;
+use App\CatalogSearch\ApiResource\ContextMatchFilters;
 use App\CatalogSearch\ApiResource\PriceRange;
-use App\CatalogSearch\ApiResource\ProjectMatchFilters;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
 use App\CatalogSearch\Service\MatchContextResolver;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -20,9 +20,9 @@ final class GetContextMatchFiltersHandler
     ) {
     }
 
-    public function __invoke(GetContextMatchFilters $query): ProjectMatchFilters
+    public function __invoke(GetContextMatchFilters $query): ContextMatchFilters
     {
-        $context = $this->contextResolver->resolve($query->projectId, $query->contextId);
+        $context = $this->contextResolver->resolve($query->contextId);
 
         $categories = array_map(
             static fn (array $row) => new CategoryFilter($row['id'], $row['title'], $row['count']),
@@ -34,7 +34,7 @@ final class GetContextMatchFiltersHandler
             $this->subtree->resolve($query->filters->categoryId),
         );
 
-        return new ProjectMatchFilters(
+        return new ContextMatchFilters(
             id: (string) $context->getId(),
             categories: $categories,
             price: null === $range

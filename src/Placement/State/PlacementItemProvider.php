@@ -21,9 +21,8 @@ final class PlacementItemProvider implements ProviderInterface
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): PlacementOutput
     {
-        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null);
         $placementId = UriVariables::uuid($uriVariables['placementId'] ?? null);
 
-        return $this->queryBus->ask(new GetPlacement($projectId, $placementId));
+        return $this->queryBus->ask(new GetPlacement($placementId));
     }
 }

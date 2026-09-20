@@ -8,13 +8,13 @@ use ApiPlatform\State\Pagination\TraversablePaginator;
 use ApiPlatform\State\ProviderInterface;
 use App\Api\Bus\QueryBusInterface;
 use App\Api\State\UriVariables;
-use App\CatalogSearch\ApiResource\ProjectMatch;
+use App\CatalogSearch\ApiResource\ContextMatch;
 use App\CatalogSearch\Query\ListContextMatches;
 
 /**
- * @implements ProviderInterface<ProjectMatch>
+ * @implements ProviderInterface<ContextMatch>
  */
-final class ProjectMatchCollectionProvider implements ProviderInterface
+final class ContextMatchCollectionProvider implements ProviderInterface
 {
     public function __construct(
         private readonly MatchFiltersFactory $filters,
@@ -25,7 +25,6 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): TraversablePaginator
     {
-        $projectId = UriVariables::uuid($uriVariables['projectId'] ?? null);
         $contextId = UriVariables::uuid($uriVariables['contextId'] ?? null);
 
         /** @var array{int, int, int} $pagination */
@@ -35,7 +34,6 @@ final class ProjectMatchCollectionProvider implements ProviderInterface
         $filters = $this->filters->create($operation);
 
         $result = $this->queryBus->ask(new ListContextMatches(
-            projectId: $projectId,
             contextId: $contextId,
             filters: $filters,
             page: $page,

@@ -3,11 +3,11 @@
 namespace App\CatalogSearch\Query;
 
 use App\Catalog\Service\CategorySubtreeResolver;
-use App\CatalogSearch\Dto\ProjectMatchCriteria;
-use App\CatalogSearch\Dto\ProjectMatchPage;
+use App\CatalogSearch\Dto\ContextMatchCriteria;
+use App\CatalogSearch\Dto\ContextMatchPage;
 use App\CatalogSearch\Repository\ProjectProductMatchRepository;
+use App\CatalogSearch\Service\ContextMatchMapper;
 use App\CatalogSearch\Service\MatchContextResolver;
-use App\CatalogSearch\Service\ProjectMatchMapper;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler(bus: 'query.bus')]
@@ -17,17 +17,17 @@ final class ListContextMatchesHandler
         private readonly MatchContextResolver $contextResolver,
         private readonly CategorySubtreeResolver $subtree,
         private readonly ProjectProductMatchRepository $matches,
-        private readonly ProjectMatchMapper $mapper,
+        private readonly ContextMatchMapper $mapper,
     ) {
     }
 
-    public function __invoke(ListContextMatches $query): ProjectMatchPage
+    public function __invoke(ListContextMatches $query): ContextMatchPage
     {
-        $context = $this->contextResolver->resolve($query->projectId, $query->contextId);
+        $context = $this->contextResolver->resolve($query->contextId);
 
         ['items' => $items, 'total' => $total] = $this->matches->findPageForContext(
             $context->getId(),
-            new ProjectMatchCriteria(
+            new ContextMatchCriteria(
                 page: $query->page,
                 limit: $query->limit,
                 priceMin: $query->filters->priceMin,
@@ -38,7 +38,7 @@ final class ListContextMatchesHandler
             ),
         );
 
-        return new ProjectMatchPage(
+        return new ContextMatchPage(
             array_map($this->mapper->map(...), $items),
             $total,
             $query->page,

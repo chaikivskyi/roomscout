@@ -87,7 +87,7 @@ final class ReadPlacementTest extends ApiTestCase
         self::assertResponseStatusCodeSame(401);
     }
 
-    public function testOtherUsersProjectIsForbidden(): void
+    public function testOtherUsersPlacementIsForbidden(): void
     {
         $stranger = UserFactory::createOne();
         $placement = ProductPlacementFactory::createOne();
@@ -97,38 +97,27 @@ final class ReadPlacementTest extends ApiTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testUnknownProjectReturns404(): void
+    public function testUnknownPlacementReturns404(): void
     {
-        $user = UserFactory::createOne();
-        $placement = ProductPlacementFactory::createOne(['context' => $this->contextFor($user)]);
-        $placementId = $placement->getId()->toRfc4122();
+        $client = $this->authClient($this->tokenFor(UserFactory::createOne()));
 
-        $client = $this->authClient($this->tokenFor($user));
-
-        $client->request('GET', '/api/projects/'.Uuid::v7()->toRfc4122().'/placements/'.$placementId);
+        $client->request('GET', '/api/placements/'.Uuid::v7()->toRfc4122());
         self::assertResponseStatusCodeSame(404);
 
-        $client->request('GET', '/api/projects/not-a-uuid/placements/'.$placementId);
+        $client->request('GET', '/api/placements/not-a-uuid');
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testUnknownOrForeignPlacementReturns404(): void
+    public function testAnyOwnedPlacementIsReachableRegardlessOfProject(): void
     {
         $user = UserFactory::createOne();
-        $project = ProjectFactory::createOne(['user' => $user]);
-        $otherProjectPlacement = ProductPlacementFactory::createOne(['context' => $this->contextFor($user)]);
+        ProjectFactory::createOne(['user' => $user]);
+        $placement = ProductPlacementFactory::createOne(['context' => $this->contextFor($user)]);
 
-        $client = $this->authClient($this->tokenFor($user));
-        $base = '/api/projects/'.$project->getId()->toRfc4122().'/placements/';
+        $this->authClient($this->tokenFor($user))->request('GET', self::placementUrl($placement));
 
-        $client->request('GET', $base.Uuid::v7()->toRfc4122());
-        self::assertResponseStatusCodeSame(404);
-
-        $client->request('GET', $base.'not-a-uuid');
-        self::assertResponseStatusCodeSame(404);
-
-        $client->request('GET', $base.$otherProjectPlacement->getId()->toRfc4122());
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
+        self::assertJsonContains(['id' => $placement->getId()->toRfc4122()]);
     }
 
     private function contextFor(User $user, ?string $prompt = null): ProjectContext
@@ -144,7 +133,6 @@ final class ReadPlacementTest extends ApiTestCase
 
     private static function placementUrl(ProductPlacement $placement): string
     {
-        return '/api/projects/'.$placement->getProject()->getId()->toRfc4122()
-            .'/placements/'.$placement->getId()->toRfc4122();
+        return '/api/placements/'.$placement->getId()->toRfc4122();
     }
 }

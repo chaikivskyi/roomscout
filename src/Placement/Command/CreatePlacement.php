@@ -9,7 +9,6 @@ final class CreatePlacement implements CommandInterface
 {
     public function __construct(
         public readonly Uuid $placementId,
-        public readonly Uuid $projectId,
         public readonly Uuid $contextId,
         public readonly Uuid $productId,
     ) {

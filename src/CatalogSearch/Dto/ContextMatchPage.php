@@ -2,12 +2,12 @@
 
 namespace App\CatalogSearch\Dto;
 
-use App\CatalogSearch\ApiResource\ProjectMatch;
+use App\CatalogSearch\ApiResource\ContextMatch;
 
-final class ProjectMatchPage
+final class ContextMatchPage
 {
     /**
-     * @param list<ProjectMatch> $items
+     * @param list<ContextMatch> $items
      */
     public function __construct(
         public readonly array $items,
