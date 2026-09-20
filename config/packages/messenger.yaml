@@ -32,10 +32,10 @@ framework:
                     max_retries: 5
                     delay: 30000
                     multiplier: 2
-            async_placements:
+            async_visualizations:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
-                    queue_name: placements
+                    queue_name: visualizations
                 retry_strategy:
                     max_retries: 3
                     delay: 30000
@@ -66,5 +66,5 @@ when@test:
                 async_scraping: 'in-memory://'
                 async_embeddings: 'in-memory://'
                 async_matching: 'in-memory://'
-                async_placements: 'in-memory://'
+                async_visualizations: 'in-memory://'
                 failed: 'in-memory://'

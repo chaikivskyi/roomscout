@@ -2,8 +2,8 @@
 
 namespace App\Tests\Fake;
 
-use App\Placement\Dto\ComposedImage;
-use App\Placement\Service\ProductImageComposerInterface;
+use App\Visualization\Dto\ComposedImage;
+use App\Visualization\Service\ProductImageComposerInterface;
 
 final class FakeProductImageComposer implements ProductImageComposerInterface
 {

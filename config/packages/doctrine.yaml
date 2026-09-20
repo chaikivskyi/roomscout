@@ -46,12 +46,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/CatalogSearch/Entity'
                 prefix: 'App\CatalogSearch\Entity'
                 alias: CatalogSearch
-            Placement:
+            Visualization:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Placement/Entity'
-                prefix: 'App\Placement\Entity'
-                alias: Placement
+                dir: '%kernel.project_dir%/src/Visualization/Entity'
+                prefix: 'App\Visualization\Entity'
+                alias: Visualization
 
 when@test:
     doctrine:

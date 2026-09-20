@@ -5,7 +5,7 @@ api_platform:
         paths:
             - '%kernel.project_dir%/src/Catalog/ApiResource'
             - '%kernel.project_dir%/src/CatalogSearch/ApiResource'
-            - '%kernel.project_dir%/src/Placement/ApiResource'
+            - '%kernel.project_dir%/src/Visualization/ApiResource'
             - '%kernel.project_dir%/src/Project/ApiResource'
             - '%kernel.project_dir%/src/Identity/ApiResource'
             - '%kernel.project_dir%/src/Identity/Entity'

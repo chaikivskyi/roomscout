@@ -40,10 +40,10 @@ when@test:
         App\Tests\Fake\FakeProductImageComposer: ~
 
         App\CatalogSearch\Service\ImageEmbedderInterface: '@App\Tests\Fake\FakeImageEmbedder'
-        App\Placement\Service\ProductImageComposerInterface: '@App\Tests\Fake\FakeProductImageComposer'
+        App\Visualization\Service\ProductImageComposerInterface: '@App\Tests\Fake\FakeProductImageComposer'
 
         App\CatalogSearch\Service\CohereImageEmbedder: ~
-        App\Placement\Service\GeminiProductImageComposer: ~
+        App\Visualization\Service\GeminiProductImageComposer: ~
 
         app.test.cohere_guard:
             class: App\Tests\Fake\GuardedHttpClient

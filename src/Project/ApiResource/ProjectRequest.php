@@ -56,7 +56,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         openapi: new Operation(
             tags: ['Project / Projects'],
             summary: 'Read a project',
-            description: 'The project\'s id, creation date and current image — the latest image version, which is the uploaded photo until a placement completes and appends its result. Returns 404 for an unknown project, 403 for another user\'s project.',
+            description: 'The project\'s id, creation date and current image — the latest image version, which is the uploaded photo until a visualization completes and appends its result. Returns 404 for an unknown project, 403 for another user\'s project.',
             responses: [
                 '401' => new Response(description: 'Missing or invalid JWT.'),
                 '403' => new Response(description: 'The project belongs to another user.'),

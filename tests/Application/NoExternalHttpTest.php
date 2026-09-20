@@ -4,7 +4,7 @@ namespace App\Tests\Application;
 
 use App\CatalogScraper\Service\PageFetcher;
 use App\CatalogSearch\Service\ImageEmbedderInterface;
-use App\Placement\Service\ProductImageComposerInterface;
+use App\Visualization\Service\ProductImageComposerInterface;
 use App\Tests\Fake\FakeImageEmbedder;
 use App\Tests\Fake\FakeProductImageComposer;
 use App\Tests\Fake\GuardedHttpClient;
