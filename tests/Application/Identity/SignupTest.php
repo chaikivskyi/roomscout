@@ -4,6 +4,7 @@ namespace App\Tests\Application\Identity;
 
 use App\Identity\Entity\User;
 use App\Tests\Application\ApiTestCase;
+use App\Tests\Factory\ProjectFactory;
 use App\Tests\Factory\UserFactory;
 use Symfony\Component\Uid\Uuid;
 
@@ -89,5 +90,50 @@ final class SignupTest extends ApiTestCase
         $paths = array_column($data['violations'], 'propertyPath');
         self::assertContains('email', $paths);
         self::assertContains('password', $paths);
+    }
+
+    public function testAGuestSigningUpKeepsItsIdentityAndProjects(): void
+    {
+        $guest = UserFactory::new()->guest()->create();
+        $project = ProjectFactory::createOne(['user' => $guest]);
+        $client = $this->authClient($this->tokenFor($guest));
+
+        $data = $client->request('POST', '/api/signup', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'json' => ['email' => 'converted@example.com', 'password' => 'Password123'],
+        ])->toArray();
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertIsString($data['id']);
+        self::assertSame($guest->getId()->toRfc4122(), $data['id']);
+        self::assertIsString($data['token']);
+
+        $me = $this->authClient($data['token'])->request('GET', '/api/me')->toArray(false);
+        self::assertSame('converted@example.com', $me['email']);
+        self::assertFalse($me['guest']);
+
+        $listed = $this->authClient($data['token'])->request('GET', '/api/projects')->toArray();
+        self::assertIsArray($listed['member']);
+        $firstMember = $listed['member'][0];
+        self::assertIsArray($firstMember);
+        self::assertSame($project->getId()->toRfc4122(), $firstMember['id']);
+    }
+
+    public function testAGuestClaimingATakenEmailStaysAGuest(): void
+    {
+        UserFactory::createOne(['email' => 'taken@example.com']);
+        $guest = UserFactory::new()->guest()->create();
+
+        $this->authClient($this->tokenFor($guest))->request('POST', '/api/signup', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'json' => ['email' => 'taken@example.com', 'password' => 'Password123'],
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+
+        $this->entityManager()->clear();
+        $reloaded = $this->entityManager()->find(User::class, $guest->getId());
+        self::assertNotNull($reloaded);
+        self::assertTrue($reloaded->isGuest());
     }
 }

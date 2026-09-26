@@ -2,14 +2,14 @@
 
 namespace App\Visualization\Command;
 
+use App\Project\Entity\ProjectImageVersion;
+use App\Project\Repository\ProjectImageVersionRepository;
+use App\Project\Service\ProjectImageStorage;
 use App\Visualization\Entity\ProductVisualization;
 use App\Visualization\Enum\VisualizationStatus;
 use App\Visualization\Exception\ImageGenerationRateLimitedException;
 use App\Visualization\Exception\ImageGenerationRejectedException;
 use App\Visualization\Service\ProductImageComposerInterface;
-use App\Project\Entity\ProjectImageVersion;
-use App\Project\Repository\ProjectImageVersionRepository;
-use App\Project\Service\ProjectImageStorage;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\FilesystemOperator;
 use Psr\Log\LoggerInterface;
@@ -84,7 +84,7 @@ final class GenerateVisualizationImageHandler
             throw new UnrecoverableMessageHandlingException($e->getMessage(), previous: $e);
         }
 
-        $path = $this->projectImageStorage->storeBytes($image->mimeType, $image->bytes);
+        $path = $this->projectImageStorage->storeBytes($image->mimeType, $image->bytes, $visualization->getProject()->getUser()->getId());
 
         try {
             $version = new ProjectImageVersion($visualization->getProject(), $path);

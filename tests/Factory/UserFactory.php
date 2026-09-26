@@ -5,6 +5,7 @@ namespace App\Tests\Factory;
 use App\Identity\Entity\User;
 use App\Identity\Enum\Role;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Zenstruck\Foundry\Object\Instantiator;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
@@ -30,6 +31,11 @@ final class UserFactory extends PersistentObjectFactory
         return $this->with(['roles' => [Role::Admin->value]]);
     }
 
+    public function guest(): static
+    {
+        return $this->with(['email' => null, 'password' => null]);
+    }
+
     protected function defaults(): array
     {
         return [
@@ -40,8 +46,16 @@ final class UserFactory extends PersistentObjectFactory
 
     protected function initialize(): static
     {
-        return $this->afterInstantiate(function (User $user): void {
-            $user->setPassword($this->passwordHasher->hashPassword($user, (string) $user->getPassword()));
-        });
+        return $this
+            ->instantiateWith(Instantiator::withConstructor()->alwaysForce('createdAt', 'lastActiveAt'))
+            ->afterInstantiate(function (User $user): void {
+                $plain = $user->getPassword();
+
+                if (null === $plain) {
+                    return;
+                }
+
+                $user->setPassword($this->passwordHasher->hashPassword($user, $plain));
+            });
     }
 }

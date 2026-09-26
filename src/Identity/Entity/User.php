@@ -20,6 +20,7 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -33,9 +34,9 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new Operation(
                 tags: ['Identity / Users'],
                 summary: 'Get the current user profile',
-                description: 'Returns the profile of the authenticated user.',
+                description: 'Returns the profile of the authenticated user. `guest` is true for an anonymous guest session, whose `email` is null; sign up while sending the guest token to convert it into a full account.',
             ),
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_GUEST')",
             provider: CurrentUserProvider::class,
         ),
         new Post(
@@ -44,7 +45,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new Operation(
                 tags: ['Identity / Account'],
                 summary: 'Create an account (and log in)',
-                description: 'Creates the account and returns a JWT, so no separate login call is needed.',
+                description: 'Creates the account and returns a JWT, so no separate login call is needed. Send a guest token from POST /api/guest in the Authorization header to convert that guest into this account, keeping its projects and its consumed free searches.',
             ),
             input: SignupInput::class,
             output: SignupOutput::class,
@@ -52,7 +53,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             processor: SignupProcessor::class,
         ),
     ],
-    normalizationContext: ['groups' => ['user:read']],
+    normalizationContext: ['groups' => ['user:read'], 'skip_null_values' => false],
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFactorInterface
 {
@@ -61,15 +62,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     #[Groups(['user:read'])]
     private Uuid $id;
 
-    #[ORM\Column(length: 180)]
-    #[Assert\NotBlank]
+    #[ORM\Column(length: 180, nullable: true)]
     #[Assert\Email]
     #[Assert\Length(max: 180)]
     #[Groups(['user:read'])]
     private ?string $email = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $password = null;
+
+    #[ORM\Column]
+    private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column]
+    private \DateTimeImmutable $lastActiveAt;
 
     /**
      * @var list<string>
@@ -83,6 +89,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     public function __construct(?Uuid $id = null)
     {
         $this->id = $id ?? Uuid::v7();
+        $this->createdAt = new \DateTimeImmutable();
+        $this->lastActiveAt = $this->createdAt;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function getLastActiveAt(): \DateTimeImmutable
+    {
+        return $this->lastActiveAt;
+    }
+
+    public function touchLastActiveAt(\DateTimeImmutable $at): void
+    {
+        $this->lastActiveAt = $at;
+    }
+
+    #[Groups(['user:read'])]
+    #[SerializedName('guest')]
+    public function isGuest(): bool
+    {
+        return null === $this->email;
     }
 
     public function getId(): Uuid
@@ -95,7 +125,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
         return $this->email;
     }
 
-    public function setEmail(string $email): static
+    public function setEmail(?string $email): static
     {
         $this->email = $email;
 
@@ -107,7 +137,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
         return $this->password;
     }
 
-    public function setPassword(string $password): static
+    public function setPassword(?string $password): static
     {
         $this->password = $password;
 
@@ -119,6 +149,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
      */
     public function getRoles(): array
     {
+        if ($this->isGuest()) {
+            return [Role::Guest->value];
+        }
+
         return array_values(array_unique([...$this->roles, Role::User->value]));
     }
 
@@ -148,7 +182,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
 
     public function getUserIdentifier(): string
     {
-        return $this->email ?: throw new \LogicException('User has no email.');
+        return $this->email ?: $this->id->toString();
     }
 
     public function getTotpSecret(): ?string

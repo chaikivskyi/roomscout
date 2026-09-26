@@ -1,0 +1,7 @@
+framework:
+    rate_limiter:
+        guest_session:
+            policy: 'sliding_window'
+            limit: 10
+            interval: '1 hour'
+            lock_factory: 'lock.factory'

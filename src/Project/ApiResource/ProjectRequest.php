@@ -13,6 +13,7 @@ use ApiPlatform\OpenApi\Model\Response;
 use App\Project\State\CreateProjectProcessor;
 use App\Project\State\ProjectCollectionProvider;
 use App\Project\State\ProjectItemProvider;
+use App\Project\Validator\ProjectCreationLimits;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -22,10 +23,11 @@ use Symfony\Component\Validator\Constraints as Assert;
         uriTemplate: '/projects',
         status: 201,
         inputFormats: ['multipart' => ['multipart/form-data']],
-        security: "is_granted('ROLE_USER')",
+        security: "is_granted('ROLE_USER') or is_granted('ROLE_GUEST')",
         openapi: new Operation(
             tags: ['Project / Projects'],
             summary: 'Submit a catalog search query (image + prompt)',
+            description: 'Creates a project from an uploaded photo and a prompt. Available to a registered user and to a guest session from POST /api/guest. Returns 422 when the free-tier limits are exceeded.',
             requestBody: new RequestBody(
                 description: 'Image file and search prompt',
                 content: new \ArrayObject([
@@ -36,7 +38,7 @@ use Symfony\Component\Validator\Constraints as Assert;
                             'image' => [
                                 'type' => 'string',
                                 'format' => 'binary',
-                                'description' => 'JPEG, PNG, WebP or GIF, max 30 MiB',
+                                'description' => 'JPEG, PNG, WebP or GIF. The effective limit is the configured free-tier maximum (10 MB by default); 30 MB is the hard ceiling.',
                             ],
                             'prompt' => ['type' => 'string'],
                         ],
@@ -69,7 +71,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     new GetCollection(
         uriTemplate: '/projects',
         paginationItemsPerPage: 15,
-        security: "is_granted('ROLE_USER')",
+        security: "is_granted('ROLE_USER') or is_granted('ROLE_GUEST')",
         openapi: new Operation(
             tags: ['Project / Projects'],
             summary: 'List the current user\'s projects',
@@ -83,11 +85,12 @@ use Symfony\Component\Validator\Constraints as Assert;
         provider: ProjectCollectionProvider::class,
     ),
 ])]
+#[ProjectCreationLimits]
 final class ProjectRequest
 {
     #[Assert\NotNull(message: 'An image file is required.')]
     #[Assert\Image(
-        maxSize: '30Mi',
+        maxSize: '30M',
         mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
     )]
     public ?UploadedFile $image = null;

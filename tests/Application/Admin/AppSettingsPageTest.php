@@ -16,13 +16,35 @@ final class AppSettingsPageTest extends WebTestCase
 
     private const string FIELD = 'app_settings[free_search_count]';
 
+    private const string IMAGE_SIZE_FIELD = 'app_settings[free_max_image_size_mb]';
+
     private KernelBrowser $client;
+
+    /** @var array<string, ?string> */
+    private array $originalSettings = [];
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->client = static::createClient();
+
+        $config = $this->config();
+
+        $this->originalSettings = [
+            'free_search_count' => $config->get('free_search_count'),
+            'free_max_image_size_mb' => $config->get('free_max_image_size_mb'),
+        ];
+    }
+
+    protected function tearDown(): void
+    {
+        $config = $this->config();
+        foreach ($this->originalSettings as $name => $value) {
+            $config->set($name, $value);
+        }
+
+        parent::tearDown();
     }
 
     public function testAnonymousVisitorIsRedirectedToLogin(): void
@@ -44,6 +66,10 @@ final class AppSettingsPageTest extends WebTestCase
         $field = $crawler->filter(sprintf('input[name="%s"]', self::FIELD));
         self::assertCount(1, $field);
         self::assertStringContainsString('form-control', (string) $field->attr('class'));
+
+        $imageSizeField = $crawler->filter(sprintf('input[name="%s"]', self::IMAGE_SIZE_FIELD));
+        self::assertCount(1, $imageSizeField);
+        self::assertStringContainsString('form-control', (string) $imageSizeField->attr('class'));
     }
 
     public function testAdminCanUpdateFreeSearchCount(): void
@@ -59,6 +85,21 @@ final class AppSettingsPageTest extends WebTestCase
 
         self::assertResponseRedirects(self::PATH);
         self::assertSame('7', $this->config()->get('free_search_count'));
+    }
+
+    public function testAdminCanUpdateFreeImageSizeMb(): void
+    {
+        $this->loginAsAdmin();
+
+        $crawler = $this->client->request('GET', self::PATH);
+
+        $form = $crawler->filter('form')->form();
+        $form[self::IMAGE_SIZE_FIELD] = '20';
+
+        $this->client->submit($form);
+
+        self::assertResponseRedirects(self::PATH);
+        self::assertSame('20', $this->config()->get('free_max_image_size_mb'));
     }
 
     public function testNegativeFreeSearchCountIsRejected(): void

@@ -25,6 +25,16 @@ class ProjectRepository extends ServiceEntityRepository
         $this->getEntityManager()->flush();
     }
 
+    public function countForUser(Uuid $userId): int
+    {
+        return (int) $this->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->where('p.user = :user')
+            ->setParameter('user', $userId, UuidType::NAME)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     /**
      * @return array{items: list<Project>, total: int}
      */

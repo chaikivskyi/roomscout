@@ -3,6 +3,7 @@
 namespace App\Tests\Factory;
 
 use App\Project\Entity\Project;
+use Zenstruck\Foundry\Object\Instantiator;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
@@ -20,5 +21,10 @@ final class ProjectFactory extends PersistentObjectFactory
         return [
             'user' => UserFactory::new(),
         ];
+    }
+
+    protected function initialize(): static
+    {
+        return $this->instantiateWith(Instantiator::withConstructor()->alwaysForce('createdAt', 'updatedAt'));
     }
 }

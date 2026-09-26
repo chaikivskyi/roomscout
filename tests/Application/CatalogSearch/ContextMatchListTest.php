@@ -217,6 +217,28 @@ final class ContextMatchListTest extends ApiTestCase
         self::assertCount(5, $data['member']);
     }
 
+    public function testAGuestCanAddAContextToItsOwnProjectAndReachTheMatchesEndpoint(): void
+    {
+        $guest = UserFactory::new()->guest()->create();
+        $project = ProjectFactory::createOne(['user' => $guest]);
+        $client = $this->authClient($this->tokenFor($guest));
+
+        $response = $client->request('POST', '/api/projects/'.$project->getId()->toRfc4122().'/contexts', [
+            'json' => ['prompt' => 'the same sofa but in green'],
+        ]);
+
+        self::assertResponseStatusCodeSame(201, 'A guest must be authorized to add a context to its own project.');
+
+        $data = $response->toArray();
+        $contextId = $data['id'];
+        self::assertIsString($contextId);
+
+        $client->request('GET', '/api/catalog-search/contexts/'.$contextId.'/matches');
+
+        self::assertResponseStatusCodeSame(202, 'A guest must be authorized to reach the matches endpoint for its own context.');
+        self::assertResponseHeaderSame('Retry-After', '5');
+    }
+
     public function testAnonymousRequestReturns401(): void
     {
         $context = ProjectContextFactory::createOne();

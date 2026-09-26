@@ -3,6 +3,7 @@
 namespace App\Tests\Factory;
 
 use App\Project\Entity\ProjectImageVersion;
+use Zenstruck\Foundry\Object\Instantiator;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
@@ -21,5 +22,10 @@ final class ProjectImageVersionFactory extends PersistentObjectFactory
             'project' => ProjectFactory::new(),
             'imagePath' => self::faker()->uuid().'/image.jpg',
         ];
+    }
+
+    protected function initialize(): static
+    {
+        return $this->instantiateWith(Instantiator::withConstructor()->alwaysForce('createdAt'));
     }
 }

@@ -9,11 +9,14 @@ use App\Api\Bus\CommandBusInterface;
 use App\Api\Bus\QueryBusInterface;
 use App\Identity\ApiResource\SignupInput;
 use App\Identity\ApiResource\SignupOutput;
+use App\Identity\Command\ClaimGuestAccount;
 use App\Identity\Command\RegisterUser;
+use App\Identity\Entity\User;
 use App\Identity\Exception\EmailAlreadyRegistered;
 use App\Identity\Query\GetUser;
 use App\Identity\Validator\UniqueUserEmail;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -27,15 +30,20 @@ final class SignupProcessor implements ProcessorInterface
         private readonly CommandBusInterface $commandBus,
         private readonly QueryBusInterface $queryBus,
         private readonly JWTTokenManagerInterface $jwtManager,
+        private readonly Security $security,
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): SignupOutput
     {
-        $userId = Uuid::v7();
+        $current = $this->security->getUser();
+        $claiming = $current instanceof User && $current->isGuest();
+        $userId = $claiming ? $current->getId() : Uuid::v7();
 
         try {
-            $this->commandBus->dispatch(new RegisterUser($userId, $data->email, $data->password));
+            $this->commandBus->dispatch($claiming
+                ? new ClaimGuestAccount($userId, $data->email, $data->password)
+                : new RegisterUser($userId, $data->email, $data->password));
         } catch (EmailAlreadyRegistered $e) {
             throw new ValidationException(new ConstraintViolationList([new ConstraintViolation(new UniqueUserEmail()->message, null, [], $data, 'email', $data->email)]), previous: $e);
         }

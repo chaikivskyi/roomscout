@@ -15,7 +15,7 @@ final class AppSettingsType extends AbstractType
     /**
      * @var list<string>
      */
-    public const array SETTINGS = ['free_search_count'];
+    public const array SETTINGS = ['free_search_count', 'free_max_image_size_mb'];
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -25,6 +25,15 @@ final class AppSettingsType extends AbstractType
             'constraints' => [
                 new Assert\NotNull(),
                 new Assert\PositiveOrZero(),
+            ],
+        ]);
+
+        $builder->add('free_max_image_size_mb', IntegerType::class, [
+            'label' => 'Free image upload size (MB)',
+            'help' => 'Largest photo, in megabytes, a user may upload when creating a project.',
+            'constraints' => [
+                new Assert\NotNull(),
+                new Assert\Positive(),
             ],
         ]);
     }

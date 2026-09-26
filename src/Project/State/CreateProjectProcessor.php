@@ -33,7 +33,7 @@ final class CreateProjectProcessor implements ProcessorInterface
         $ownerId = $this->actor->requireCurrentId();
         $image = $data->image ?? throw new \LogicException('Validation must reject a request without an image.');
 
-        $imagePath = $this->imageStorage->store($image);
+        $imagePath = $this->imageStorage->store($image, $ownerId);
         $projectId = Uuid::v7();
         $contextId = Uuid::v7();
 

@@ -8,7 +8,6 @@ security:
         identity_users:
             entity:
                 class: App\Identity\Entity\User
-                property: email
 
     firewalls:
         dev:
@@ -51,6 +50,7 @@ security:
         - { path: ^/api/signup, roles: PUBLIC_ACCESS }
         - { path: ^/api/forgot-password, roles: PUBLIC_ACCESS }
         - { path: ^/api/reset-password, roles: PUBLIC_ACCESS }
+        - { path: ^/api/guest$, roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/catalog/products$, roles: PUBLIC_ACCESS, methods: [GET, HEAD] }
         - { path: ^/api/catalog/categories$, roles: PUBLIC_ACCESS, methods: [GET, HEAD] }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
